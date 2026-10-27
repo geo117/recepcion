@@ -109,6 +109,10 @@ function construirVisita(base) {
     personaVisitar: persona?.nombre ?? "Sin asignar",
     motivo: base.motivo,
     telefono: base.telefono ?? "",
+    telefonoEmergencia: base.telefonoEmergencia ?? "",
+    eps: base.eps ?? "",
+    arl: base.arl ?? "",
+    foto: base.foto ?? "",
     fecha: base.fecha,
     horaEntrada: base.horaEntrada,
     horaSalida: base.horaSalida ?? null,
@@ -137,6 +141,9 @@ function semilla() {
       personaId: "e-02",
       motivo: "Proveedor",
       telefono: "3104567890",
+      telefonoEmergencia: "3104567891",
+      eps: "Sura",
+      arl: "ARL Sura",
       fecha: hoy,
       horaEntrada: horaHace(245),
       horaSalida: horaHace(210),
@@ -148,6 +155,9 @@ function semilla() {
       personaId: "e-05",
       motivo: "Reunión",
       telefono: "3207845123",
+      telefonoEmergencia: "3207845124",
+      eps: "Sanitas",
+      arl: "Positiva",
       fecha: hoy,
       horaEntrada: horaHace(185),
       horaSalida: horaHace(140),
@@ -159,6 +169,9 @@ function semilla() {
       personaId: "e-01",
       motivo: "Proveedor",
       telefono: "3158897412",
+      telefonoEmergencia: "3158897413",
+      eps: "Nueva EPS",
+      arl: "Colmena Seguros",
       fecha: hoy,
       horaEntrada: horaHace(125),
       horaSalida: horaHace(96),
@@ -170,6 +183,9 @@ function semilla() {
       personaId: "e-04",
       motivo: "Entrevista",
       telefono: "3016547890",
+      telefonoEmergencia: "3016547891",
+      eps: "Compensar",
+      arl: "Seguros Bolívar",
       fecha: hoy,
       horaEntrada: horaHace(68),
       horaSalida: null,
@@ -181,6 +197,9 @@ function semilla() {
       personaId: "e-07",
       motivo: "Mantenimiento",
       telefono: "3124587963",
+      telefonoEmergencia: "3124587964",
+      eps: "Famisanar",
+      arl: "ARL Sura",
       fecha: hoy,
       horaEntrada: horaHace(22),
       horaSalida: null,
@@ -375,7 +394,15 @@ export async function listarVisitas(filtros = {}) {
   if (estado) datos = datos.filter((item) => item.estado === estado);
   if (termino) {
     datos = datos.filter((item) =>
-      [item.nombre, item.documento, item.empresa, item.personaVisitar, item.motivo]
+      [
+        item.nombre,
+        item.documento,
+        item.empresa,
+        item.personaVisitar,
+        item.motivo,
+        item.eps,
+        item.arl,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(termino),
@@ -458,6 +485,10 @@ export async function crearVisita(datos) {
     personaId: datos.personaId,
     motivo: datos.motivo,
     telefono: datos.telefono,
+    telefonoEmergencia: datos.telefonoEmergencia,
+    eps: datos.eps,
+    arl: datos.arl,
+    foto: datos.foto,
     fecha: hoyISO(),
     horaEntrada: horaActual(),
     registradoPor: datos.registradoPor,
@@ -502,6 +533,11 @@ export async function actualizarVisita(id, cambios) {
     personaVisitar: persona?.nombre ?? visita.personaVisitar,
     motivo: cambios.motivo ?? visita.motivo,
     telefono: cambios.telefono ?? visita.telefono,
+    telefonoEmergencia:
+      cambios.telefonoEmergencia ?? visita.telefonoEmergencia,
+    eps: cambios.eps ?? visita.eps,
+    arl: cambios.arl ?? visita.arl,
+    foto: cambios.foto ?? visita.foto,
     actualizadoEn: new Date().toISOString(),
   };
 
@@ -562,11 +598,4 @@ export async function obtenerResumen({ desde, hasta } = {}) {
     porMotivo,
     porDia,
   };
-}
-
-export async function reiniciarDemo() {
-  await esperar(200);
-  localStorage.removeItem(CLAVE);
-  cargar();
-  return { ok: true };
 }

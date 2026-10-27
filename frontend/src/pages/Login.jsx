@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Form, Modal } from "react-bootstrap";
+import { Form } from "react-bootstrap";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   FiEye,
@@ -24,7 +24,6 @@ export default function Login() {
   const [verPassword, setVerPassword] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [errores, setErrores] = useState({});
-  const [modalOlvido, setModalOlvido] = useState(false);
 
   const destino = String(location.state?.desde ?? "").startsWith("/")
     ? location.state.desde
@@ -77,13 +76,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-panel">
-        <div className="login-marca">
-          <span className="login-marca__logo" aria-hidden="true">
-            GYJ
-          </span>
-          <span className="login-marca__texto">Recepción de visitantes</span>
-        </div>
-
+        
         <div className="login-card">
           <div className="login-card__franja" aria-hidden="true" />
           <div className="login-card__cuerpo">
@@ -150,16 +143,6 @@ export default function Login() {
                 )}
               </Form.Group>
 
-              <div className="d-flex justify-content-end mb-4">
-                <button
-                  type="button"
-                  className="login-card__olvido"
-                  onClick={() => setModalOlvido(true)}
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-
               <GYJButton
                 type="submit"
                 cargando={cargando}
@@ -207,40 +190,6 @@ export default function Login() {
           Si necesitas ayuda, contacta a Tecnología de la Información.
         </p>
       </div>
-
-      <Modal
-        show={modalOlvido}
-        onHide={() => setModalOlvido(false)}
-        centered
-        aria-labelledby="titulo-olvido"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title id="titulo-olvido" className="h5">
-            Recuperación de acceso
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p className="mb-3">
-            Por seguridad, las contraseñas no se restablecen desde este módulo.
-            Comunícate con el área de Tecnología de la Información:
-          </p>
-          <ul className="mb-0 ps-3">
-            <li>
-              Correo:{" "}
-              <a href="mailto:soporte@gyjferreterias.com.co">
-                soporte@gyjferreterias.com.co
-              </a>
-            </li>
-            <li>Extensión interna: 214</li>
-            <li>Horario de atención: lunes a viernes, 7:00 a. m. – 5:00 p. m.</li>
-          </ul>
-        </Modal.Body>
-        <Modal.Footer>
-          <GYJButton variant="outline" onClick={() => setModalOlvido(false)}>
-            Entendido
-          </GYJButton>
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 }

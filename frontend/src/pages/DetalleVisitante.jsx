@@ -5,10 +5,12 @@ import {
   FiAlertCircle,
   FiArrowLeft,
   FiCalendar,
+  FiCamera,
   FiCheck,
   FiClock,
   FiEdit2,
   FiLogOut,
+  FiPhone,
   FiSave,
   FiTrash2,
   FiUser,
@@ -28,8 +30,9 @@ import {
   formatearFechaLarga,
   formatearHora,
 } from "../utils/fecha";
+import { nombreArchivoFoto } from "../utils/fotos";
 import {
-  MOTIVOS,
+  EPS,
   sanitizarTexto,
   tieneErrores,
   validarRegistro,
@@ -38,6 +41,7 @@ import GYJBadge from "../components/ui/GYJBadge";
 import GYJButton from "../components/ui/GYJButton";
 import GYJCard from "../components/ui/GYJCard";
 import GYJInput from "../components/ui/GYJInput";
+import ModalVerFoto from "../components/visitantes/ModalVerFoto";
 
 function formularioDesde(visita) {
   return {
@@ -47,6 +51,10 @@ function formularioDesde(visita) {
     personaId: visita.personaId,
     motivo: visita.motivo,
     telefono: visita.telefono,
+    telefonoEmergencia: visita.telefonoEmergencia,
+    eps: visita.eps,
+    arl: visita.arl,
+    foto: visita.foto ?? "",
   };
 }
 
@@ -66,6 +74,7 @@ export default function DetalleVisitante() {
   const [guardando, setGuardando] = useState(false);
   const [procesandoSalida, setProcesandoSalida] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [verFoto, setVerFoto] = useState(false);
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -144,6 +153,13 @@ export default function DetalleVisitante() {
         personaId: formulario.personaId,
         motivo: formulario.motivo,
         telefono: sanitizarTexto(formulario.telefono, 10),
+        telefonoEmergencia: sanitizarTexto(
+          formulario.telefonoEmergencia,
+          10,
+        ),
+        eps: sanitizarTexto(formulario.eps, 60),
+        arl: sanitizarTexto(formulario.arl, 60),
+        foto: formulario.foto ?? "",
       });
       setVisita(actualizada);
       setEditando(false);
@@ -198,7 +214,7 @@ export default function DetalleVisitante() {
     setEliminando(true);
     try {
       await api.eliminarVisita(visita.id);
-      navigate("/recepcion/visitantes", { replace: true });
+      navigate("/recepcion", { replace: true });
       await alertaExito("Registro eliminado", "El historial se actualizó.");
     } catch {
       setEliminando(false);
@@ -230,7 +246,7 @@ export default function DetalleVisitante() {
           <GYJButton variant="outline" onClick={recargar}>
             Reintentar
           </GYJButton>
-          <Link className="btn gyj-btn gyj-btn--primary" to="/recepcion/visitantes">
+          <Link className="btn gyj-btn gyj-btn--primary" to="/recepcion">
             Volver al listado
           </Link>
         </div>
@@ -250,7 +266,7 @@ export default function DetalleVisitante() {
         <div className="page-head__acciones">
           <Link
             className="btn gyj-btn gyj-btn--outline"
-            to="/recepcion/visitantes"
+            to="/recepcion"
           >
             <FiArrowLeft aria-hidden="true" />
             <span>Volver</span>
@@ -296,7 +312,7 @@ export default function DetalleVisitante() {
             descripcion="Actualiza los datos del visitante. Los cambios quedan registrados con la fecha y hora actual."
           >
             <Form onSubmit={guardar} noValidate>
-              <div className="registro-grid">
+              <div className="registro-grid registro-grid--tres">
                 <GYJInput
                   label="Nombre completo"
                   name="nombre"
@@ -324,6 +340,30 @@ export default function DetalleVisitante() {
                   maxLength={12}
                   obligatorio
                 />
+                <Form.Group className="gyj-campo">
+                  <Form.Label htmlFor="eps-edicion">EPS</Form.Label>
+                  <Form.Select
+                    id="eps-edicion"
+                    value={formulario.eps ?? ""}
+                    onChange={(evento) =>
+                      actualizarCampo("eps", evento.target.value)
+                    }
+                    isInvalid={Boolean(errores.eps)}
+                    aria-invalid={Boolean(errores.eps)}
+                  >
+                    <option value="">Selecciona la EPS</option>
+                    {EPS.map((eps) => (
+                      <option key={eps} value={eps}>
+                        {eps}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  {errores.eps && (
+                    <div className="invalid-feedback d-block">
+                      {errores.eps}
+                    </div>
+                  )}
+                </Form.Group>
                 <GYJInput
                   label="Empresa / procedencia"
                   name="empresa"
@@ -350,6 +390,22 @@ export default function DetalleVisitante() {
                   inputMode="numeric"
                 />
                 <GYJInput
+                  label="Teléfono de emergencia"
+                  name="telefonoEmergencia-edicion"
+                  type="tel"
+                  icono={FiPhone}
+                  value={formulario.telefonoEmergencia ?? ""}
+                  onChange={(evento) =>
+                    actualizarCampo(
+                      "telefonoEmergencia",
+                      evento.target.value.replace(/\D/g, ""),
+                    )
+                  }
+                  error={errores.telefonoEmergencia}
+                  maxLength={10}
+                  inputMode="numeric"
+                />
+                <GYJInput
                   label="Persona a visitar"
                   name="persona-edicion"
                   icono={FiUserCheck}
@@ -366,33 +422,30 @@ export default function DetalleVisitante() {
                     </option>
                   ))}
                 </datalist>
-                <Form.Group className="gyj-campo">
-                  <Form.Label htmlFor="motivo-edicion">
-                    Motivo de visita
-                    <span className="marca-obligatorio" aria-hidden="true">
-                      *
-                    </span>
-                  </Form.Label>
-                  <Form.Select
-                    id="motivo-edicion"
-                    value={formulario.motivo}
-                    onChange={(evento) =>
-                      actualizarCampo("motivo", evento.target.value)
-                    }
-                    isInvalid={Boolean(errores.motivo)}
-                  >
-                    {MOTIVOS.map((motivo) => (
-                      <option key={motivo} value={motivo}>
-                        {motivo}
-                      </option>
-                    ))}
-                  </Form.Select>
-                  {errores.motivo && (
-                    <div className="invalid-feedback d-block">
-                      {errores.motivo}
-                    </div>
-                  )}
-                </Form.Group>
+                <GYJInput
+                  label="Motivo de visita"
+                  name="motivo-edicion"
+                  placeholder="Describe el motivo de la visita"
+                  value={formulario.motivo ?? ""}
+                  onChange={(evento) =>
+                    actualizarCampo("motivo", evento.target.value)
+                  }
+                  error={errores.motivo}
+                  maxLength={120}
+                  obligatorio
+                  required
+                />
+                <GYJInput
+                  label="ARL"
+                  name="arl-edicion"
+                  placeholder="Ej. ARL Sura"
+                  value={formulario.arl ?? ""}
+                  onChange={(evento) =>
+                    actualizarCampo("arl", evento.target.value)
+                  }
+                  error={errores.arl}
+                  maxLength={60}
+                />
               </div>
 
               <div className="detalle-acciones">
@@ -420,7 +473,7 @@ export default function DetalleVisitante() {
             descripcion="Información capturada en recepción."
             acciones={<GYJBadge estado={visita.estado} />}
           >
-            <dl className="datos-lista">
+            <dl className="datos-lista datos-lista--tres">
               <div className="datos-lista__item">
                 <dt className="datos-lista__etiqueta">Nombre</dt>
                 <dd className="datos-lista__valor mb-0">{visita.nombre}</dd>
@@ -428,6 +481,12 @@ export default function DetalleVisitante() {
               <div className="datos-lista__item">
                 <dt className="datos-lista__etiqueta">Documento</dt>
                 <dd className="datos-lista__valor mb-0">{visita.documento}</dd>
+              </div>
+              <div className="datos-lista__item">
+                <dt className="datos-lista__etiqueta">EPS</dt>
+                <dd className="datos-lista__valor mb-0">
+                  {visita.eps || "—"}
+                </dd>
               </div>
               <div className="datos-lista__item">
                 <dt className="datos-lista__etiqueta">Empresa</dt>
@@ -442,6 +501,14 @@ export default function DetalleVisitante() {
                 </dd>
               </div>
               <div className="datos-lista__item">
+                <dt className="datos-lista__etiqueta">
+                  Teléfono de emergencia
+                </dt>
+                <dd className="datos-lista__valor mb-0">
+                  {visita.telefonoEmergencia || "—"}
+                </dd>
+              </div>
+              <div className="datos-lista__item">
                 <dt className="datos-lista__etiqueta">Persona a visitar</dt>
                 <dd className="datos-lista__valor mb-0">
                   {visita.personaVisitar}
@@ -450,6 +517,12 @@ export default function DetalleVisitante() {
               <div className="datos-lista__item">
                 <dt className="datos-lista__etiqueta">Motivo</dt>
                 <dd className="datos-lista__valor mb-0">{visita.motivo}</dd>
+              </div>
+              <div className="datos-lista__item">
+                <dt className="datos-lista__etiqueta">ARL</dt>
+                <dd className="datos-lista__valor mb-0">
+                  {visita.arl || "—"}
+                </dd>
               </div>
               <div className="datos-lista__item">
                 <dt className="datos-lista__etiqueta">Fecha</dt>
@@ -471,7 +544,7 @@ export default function DetalleVisitante() {
         )}
 
         <GYJCard titulo="Trazabilidad">
-          <div className="meta-lista">
+          <div className="meta-lista meta-lista--tres">
             <div className="meta-lista__item">
               <FiCalendar aria-hidden="true" />
               <div>
@@ -490,6 +563,21 @@ export default function DetalleVisitante() {
                 </p>
               </div>
             </div>
+            {visita.foto && (
+              <div className="meta-lista__item">
+                <FiCamera aria-hidden="true" />
+                <div>
+                  <p className="meta-lista__etiqueta">Foto del visitante</p>
+                  <button
+                    type="button"
+                    className="link-foto"
+                    onClick={() => setVerFoto(true)}
+                  >
+                    Ver foto ({nombreArchivoFoto(visita.nombre)})
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="meta-lista__item">
               <FiUser aria-hidden="true" />
               <div>
@@ -518,6 +606,13 @@ export default function DetalleVisitante() {
           </div>
         </GYJCard>
       </div>
+
+      <ModalVerFoto
+        show={verFoto}
+        nombre={visita.nombre}
+        foto={visita.foto}
+        onHide={() => setVerFoto(false)}
+      />
     </>
   );
 }

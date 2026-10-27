@@ -8,10 +8,8 @@ import GYJButton from "../ui/GYJButton";
 
 function nombreSeccion(pathname) {
   if (pathname.startsWith("/recepcion/visitantes/")) return "Detalle del visitante";
-  if (pathname.startsWith("/recepcion/visitantes")) return "Visitantes";
   if (pathname.startsWith("/recepcion/reportes")) return "Reportes";
   if (pathname.startsWith("/administracion")) return "Administración";
-  if (pathname.startsWith("/ajustes")) return "Ajustes";
   if (pathname.startsWith("/recepcion")) return "Recepción";
   return "Panel";
 }

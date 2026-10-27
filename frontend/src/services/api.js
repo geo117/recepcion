@@ -203,8 +203,4 @@ export const api = {
           params: { desde: rango.desde, hasta: rango.hasta },
         });
   },
-
-  reiniciarDemo() {
-    return demo.reiniciarDemo();
-  },
 };

@@ -62,12 +62,10 @@ npm run lint     # ESLint
 | Ruta | Descripción |
 | --- | --- |
 | `/login` | Autenticación de recepción |
-| `/recepcion` | Registro rápido del día |
-| `/recepcion/visitantes` | Histórico, filtros y exportación |
+| `/recepcion` | Registro y consulta de visitantes |
 | `/recepcion/visitantes/:id` | Detalle y edición del registro |
 | `/recepcion/reportes` | Reportes y exportación (solo admin) |
 | `/administracion` | Usuarios activos y creación de accesos (solo admin) |
-| `/ajustes` | Cuenta y seguridad de la sesión |
 
 ## Estructura
 
@@ -76,9 +74,9 @@ src/
 ├── components/
 │   ├── layout/       Sidebar, Header, AppShell, ProtectedRoute
 │   ├── ui/           GYJButton, GYJCard, GYJBadge, GYJInput
-│   └── visitantes/   RegistroRapido, TablaUltimos, TablaVisitantes
+│   └── visitantes/   ListaVisitantes, ModalAgregarVisita, ModalDetalleVisitante, TablaVisitantes
 ├── hooks/            AuthProvider, useAuth, useInactividad
-├── pages/            Login, Dashboard, Visitantes, Detalle, Reportes, Administración, Ajustes
+├── pages/            Login, Dashboard, Detalle, Reportes, Administración
 ├── services/         api, adaptador demo, sesión
 ├── styles/           tokens.css, global.css
 └── utils/            alertas, csv, fechas, usuarios y validaciones

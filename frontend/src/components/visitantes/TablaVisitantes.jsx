@@ -1,9 +1,9 @@
 import { Fragment } from "react";
-import { Link } from "react-router-dom";
 import { Pagination, Table } from "react-bootstrap";
 import {
-  FiEdit2,
+  FiEye,
   FiLogOut,
+  FiPrinter,
   FiSearch,
   FiTrash2,
   FiUsers,
@@ -11,6 +11,7 @@ import {
 import { formatearFecha, formatearHora } from "../../utils/fecha";
 import GYJBadge from "../ui/GYJBadge";
 import GYJButton from "../ui/GYJButton";
+import MenuAcciones from "./MenuAcciones";
 
 function paginasVisibles(actual, total) {
   if (total <= 7) {
@@ -37,6 +38,8 @@ export default function TablaVisitantes({
   eliminandoId = "",
   onPagina,
   onReintentar,
+  onVer,
+  onImprimir,
   onSalida,
   onEliminar,
 }) {
@@ -127,36 +130,35 @@ export default function TablaVisitantes({
                 </td>
                 <td>
                   <div className="gyj-table__acciones">
-                    {visitante.estado === "dentro" && (
-                      <GYJButton
-                        variant="outline"
-                        className="gyj-btn--icono"
-                        icono={FiLogOut}
-                        cargando={registrandoId === visitante.id}
-                        onClick={() => onSalida?.(visitante)}
-                        aria-label={`Registrar salida de ${visitante.nombre}`}
-                        title="Registrar salida"
-                      />
-                    )}
-                    <Link
-                      to={`/recepcion/visitantes/${visitante.id}`}
-                      className="btn gyj-btn gyj-btn--outline gyj-btn--icono"
-                      aria-label={`Ver o editar a ${visitante.nombre}`}
-                      title="Ver / editar"
-                    >
-                      <FiEdit2 aria-hidden="true" />
-                    </Link>
-                    {esAdmin && (
-                      <GYJButton
-                        variant="danger"
-                        className="gyj-btn--icono"
-                        icono={FiTrash2}
-                        cargando={eliminandoId === visitante.id}
-                        onClick={() => onEliminar?.(visitante)}
-                        aria-label={`Eliminar el registro de ${visitante.nombre}`}
-                        title="Eliminar registro"
-                      />
-                    )}
+                    <MenuAcciones
+                      etiqueta={`Acciones para ${visitante.nombre}`}
+                      acciones={[
+                        {
+                          etiqueta: "Ver detalle",
+                          icono: FiEye,
+                          onClick: () => onVer?.(visitante),
+                        },
+                        {
+                          etiqueta: "Imprimir etiqueta",
+                          icono: FiPrinter,
+                          onClick: () => onImprimir?.(visitante),
+                        },
+                        visitante.estado === "dentro" && {
+                          etiqueta: "Registrar salida",
+                          icono: FiLogOut,
+                          onClick: () => onSalida?.(visitante),
+                          deshabilitado: registrandoId === visitante.id,
+                        },
+                        esAdmin && { separador: true },
+                        esAdmin && {
+                          etiqueta: "Eliminar registro",
+                          icono: FiTrash2,
+                          onClick: () => onEliminar?.(visitante),
+                          peligro: true,
+                          deshabilitado: eliminandoId === visitante.id,
+                        },
+                      ]}
+                    />
                   </div>
                 </td>
               </tr>

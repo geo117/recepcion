@@ -124,13 +124,9 @@ Ambas disponibles vía Google Fonts. Importar en `index.html` con `display=swap`
 
 /recepcion                → Dashboard principal (registro rápido)
 
-/recepcion/visitantes     → Listado y búsqueda de visitantes
-
 /recepcion/visitantes/:id → Detalle / edición de un registro
 
 /recepcion/reportes       → Reportes y exportación (solo admin)
-
-/ajustes                  → Configuración de usuario (opcional)
 
 ```
 
@@ -186,15 +182,15 @@ Ambas disponibles vía Google Fonts. Importar en `index.html` con `display=swap`
 
 **Layout:**
 
-- **Sidebar izquierdo** (fondo `--gyj-black`, ancho 240px): navegación con iconos (react-icons: `FiHome`, `FiUsers`, `FiBarChart2`, `FiSettings`) y etiquetas blancas. Elemento activo con borde izquierdo `--gyj-yellow` de 4px.
+- **Sidebar izquierdo** (fondo `--gyj-black`, ancho 240px): navegación con iconos (react-icons: `FiHome`, `FiBarChart2`, `FiShield`) y etiquetas blancas. Elemento activo con borde izquierdo `--gyj-yellow` de 4px.
 
 - **Header superior** (blanco, borde inferior `--gyj-gray-100`): título "Recepción", nombre de la recepcionista, botón "Cerrar sesión" (icono `FiLogOut`).
 
-- **Contenido principal:** Tarjeta grande de **Registro Rápido** centrada.
+- **Contenido principal:** listado completo de visitantes con filtros, exportación y acciones por fila.
 
 
 
-**Formulario de Registro Rápido:**
+**Formulario de Registro Rápido (modal "Agregar visita"):**
 
 
 
@@ -206,13 +202,19 @@ Ambas disponibles vía Google Fonts. Importar en `index.html` con `display=swap`
 
 | Documento de identidad | Text | Sí | Alfanumérico, 6–12 caracteres |
 
+| EPS | Select | No | Lista precargada de EPS |
+
 | Empresa / Procedencia | Text | No | Máx. 60 caracteres |
 
 | Persona a visitar | Select (buscable) | Sí | Lista precargada de empleados |
 
-| Motivo de visita | Select | Sí | Reunión, Proveedor, Entrevista, Mantenimiento, Otro |
+| Motivo de visita | Text | Sí | Texto libre, máx. 120 caracteres |
+
+| ARL | Text | No | Máx. 60 caracteres |
 
 | Teléfono de contacto | Tel | No | Formato colombiano (10 dígitos) |
+
+| Teléfono de emergencia | Tel | No | Formato colombiano (10 dígitos) |
 
 
 
@@ -224,37 +226,11 @@ Ambas disponibles vía Google Fonts. Importar en `index.html` con `display=swap`
 
 
 
-**Debajo del formulario:** Tabla compacta con los **últimos 5 visitantes del día** (nombre, hora entrada, persona a visitar, estado). Datos desde el endpoint `GET /api/visitas?fecha=hoy&limit=5`.
+**Acciones del listado:** búsqueda, filtros por fecha y estado, exportación CSV, paginación y menú de acciones por fila (ver detalle en modal, registrar salida y eliminar). El botón **Agregar visita** abre el formulario en un modal.
 
 
 
-### 3.4 Módulo: Listado de Visitantes (`/recepcion/visitantes`)
-
-
-
-**Propósito:** Consulta, búsqueda y gestión histórica.
-
-
-
-**Elementos:**
-
-- Barra de búsqueda con icono `FiSearch` (filtra por nombre o documento).
-
-- Filtros: rango de fechas (React-Bootstrap `Form.Control type="date"`), estado (Dentro / Salió).
-
-- Tabla responsiva (`Table` de React-Bootstrap) con columnas: **Nombre**, **Documento**, **Empresa**, **Persona a visitar**, **Entrada**, **Salida**, **Estado**, **Acciones**.
-
-- Estado "Dentro" → badge con fondo `--gyj-yellow-soft` y texto `--gyj-black`. Estado "Salió" → badge gris.
-
-- Acciones por fila: botón "Registrar salida" (si aplica), botón "Editar" (icono `FiEdit2`), botón "Eliminar" (icono `FiTrash2`, solo admin).
-
-- Paginación (`Pagination` de React-Bootstrap) con 20 registros por página.
-
-- Botón "Exportar CSV" alineado a la derecha.
-
-
-
-### 3.5 Módulo: Detalle de Visitante (`/recepcion/visitantes/:id`)
+### 3.4 Módulo: Detalle de Visitante (`/recepcion/visitantes/:id`)
 
 
 
@@ -262,7 +238,7 @@ Vista de solo lectura con opción de edición. Muestra todos los campos del regi
 
 
 
-### 3.6 Módulo: Reportes (`/recepcion/reportes`)
+### 3.5 Módulo: Reportes (`/recepcion/reportes`)
 
 
 
@@ -440,9 +416,11 @@ src/
 
 │   └── visitantes/
 
-│       ├── RegistroRapido.jsx   # Formulario principal
+│       ├── ListaVisitantes.jsx  # Historial, filtros y exportación
 
-│       ├── TablaUltimos.jsx     # Últimos 5 del día
+│       ├── ModalAgregarVisita.jsx # Formulario de registro en modal
+
+│       ├── ModalDetalleVisitante.jsx # Detalle del visitante en modal
 
 │       └── TablaVisitantes.jsx  # Tabla completa con filtros
 
@@ -451,8 +429,6 @@ src/
 │   ├── Login.jsx
 
 │   ├── Dashboard.jsx
-
-│   ├── Visitantes.jsx
 
 │   ├── DetalleVisitante.jsx
 

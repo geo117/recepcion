@@ -61,12 +61,33 @@ export function validarTelefono(valor) {
   return "";
 }
 
+export function validarTelefonoEmergencia(valor) {
+  return validarTelefono(valor);
+}
+
+export function validarEps(valor) {
+  if (String(valor ?? "").trim().length > 60) {
+    return "La EPS no puede superar 60 caracteres.";
+  }
+  return "";
+}
+
+export function validarArl(valor) {
+  if (String(valor ?? "").trim().length > 60) {
+    return "La ARL no puede superar 60 caracteres.";
+  }
+  return "";
+}
+
 export function validarPersona(valor) {
   return valor ? "" : "Selecciona la persona a visitar.";
 }
 
 export function validarMotivo(valor) {
-  return valor ? "" : "Selecciona el motivo de la visita.";
+  const motivo = limpiarEspacios(valor);
+  if (!motivo) return "Escribe el motivo de la visita.";
+  if (motivo.length > 120) return "El motivo no puede superar 120 caracteres.";
+  return "";
 }
 
 export function validarRegistro(campos) {
@@ -75,6 +96,9 @@ export function validarRegistro(campos) {
     documento: validarDocumento(campos.documento),
     empresa: validarEmpresa(campos.empresa),
     telefono: validarTelefono(campos.telefono),
+    telefonoEmergencia: validarTelefonoEmergencia(campos.telefonoEmergencia),
+    eps: validarEps(campos.eps),
+    arl: validarArl(campos.arl),
     personaId: validarPersona(campos.personaId),
     motivo: validarMotivo(campos.motivo),
   };
@@ -84,12 +108,19 @@ export function tieneErrores(errores) {
   return Object.values(errores).some(Boolean);
 }
 
-export const MOTIVOS = [
-  "Reunión",
-  "Proveedor",
-  "Entrevista",
-  "Mantenimiento",
-  "Otro",
+export const EPS = [
+  "Sura",
+  "Sanitas",
+  "Nueva EPS",
+  "Compensar",
+  "Famisanar",
+  "Salud Total",
+  "Coosalud",
+  "Mutual Ser",
+  "S.O.S.",
+  "Asmet Salud",
+  "Savia Salud",
+  "Otra",
 ];
 
 export const ESTADOS = [

@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
 import { Form } from "react-bootstrap";
 import { FiDownload, FiSearch, FiX } from "react-icons/fi";
-import { api } from "../services/api";
-import { useAuth } from "../hooks/authContext";
+import { api } from "../../services/api";
+import { useAuth } from "../../hooks/authContext";
 import {
   alertaAviso,
   alertaError,
   alertaExito,
   alertaTemporal,
   confirmarAccion,
-} from "../utils/alertas";
-import { descargarCSV } from "../utils/csv";
-import { hoyISO } from "../utils/fecha";
-import { ESTADOS } from "../utils/validaciones";
-import GYJButton from "../components/ui/GYJButton";
-import TablaVisitantes from "../components/visitantes/TablaVisitantes";
+} from "../../utils/alertas";
+import { descargarCSV } from "../../utils/csv";
+import { hoyISO } from "../../utils/fecha";
+import { ESTADOS } from "../../utils/validaciones";
+import GYJButton from "../ui/GYJButton";
+import ModalDetalleVisitante from "./ModalDetalleVisitante";
+import TablaVisitantes from "./TablaVisitantes";
 
 const FILTROS_INICIALES = {
   busqueda: "",
@@ -26,10 +27,13 @@ const FILTROS_INICIALES = {
 const COLUMNAS_CSV = [
   "Nombre",
   "Documento",
+  "EPS",
   "Empresa",
   "Persona a visitar",
   "Motivo",
+  "ARL",
   "Teléfono",
+  "Teléfono de emergencia",
   "Fecha",
   "Entrada",
   "Salida",
@@ -37,7 +41,7 @@ const COLUMNAS_CSV = [
   "Registrado por",
 ];
 
-export default function Visitantes() {
+export default function ListaVisitantes({ recarga = 0 }) {
   const { esAdmin } = useAuth();
   const [filtros, setFiltros] = useState(FILTROS_INICIALES);
   const [pagina, setPagina] = useState(1);
@@ -54,6 +58,7 @@ export default function Visitantes() {
   const [registrandoId, setRegistrandoId] = useState("");
   const [eliminandoId, setEliminandoId] = useState("");
   const [exportando, setExportando] = useState(false);
+  const [visitanteDetalle, setVisitanteDetalle] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -85,7 +90,7 @@ export default function Visitantes() {
       activo = false;
       window.clearTimeout(temporizador);
     };
-  }, [filtros, pagina, version]);
+  }, [filtros, pagina, version, recarga]);
 
   const hayFiltros = Object.values(filtros).some(Boolean);
 
@@ -136,6 +141,10 @@ export default function Visitantes() {
     }
   };
 
+  const manejarImprimir = async () => {
+    await alertaExito("Etiqueta impresa", "La etiqueta ya se imprimió.");
+  };
+
   const manejarEliminar = async (visitante) => {
     const confirmado = await confirmarAccion(
       "Eliminar registro",
@@ -181,10 +190,13 @@ export default function Visitantes() {
       const filas = respuesta.datos.map((visitante) => [
         visitante.nombre,
         visitante.documento,
+        visitante.eps,
         visitante.empresa,
         visitante.personaVisitar,
         visitante.motivo,
+        visitante.arl,
         visitante.telefono,
+        visitante.telefonoEmergencia,
         visitante.fecha,
         visitante.horaEntrada,
         visitante.horaSalida ?? "",
@@ -204,16 +216,17 @@ export default function Visitantes() {
   };
 
   return (
-    <>
-      <div className="page-head">
-        <div>
-          <h1 className="page-head__titulo">Visitantes</h1>
-          <p className="page-head__descripcion">
-            Consulta el historial, registra salidas y administra los registros
-            de la oficina.
-          </p>
-        </div>
-        <div className="page-head__acciones">
+    <section aria-labelledby="titulo-lista-visitantes">
+      <div className="seccion-tabla__head">
+        <h2 className="seccion-tabla__titulo" id="titulo-lista-visitantes">
+          Historial de visitantes
+        </h2>
+        <div className="seccion-tabla__acciones">
+          <span className="seccion-tabla__meta">
+            {cargando
+              ? "Cargando…"
+              : `${resultado.total} ${resultado.total === 1 ? "registro" : "registros"}`}
+          </span>
           <GYJButton
             variant="outline"
             icono={FiDownload}
@@ -316,9 +329,16 @@ export default function Visitantes() {
         eliminandoId={eliminandoId}
         onPagina={setPagina}
         onReintentar={recargar}
+        onVer={setVisitanteDetalle}
+        onImprimir={manejarImprimir}
         onSalida={manejarSalida}
         onEliminar={manejarEliminar}
       />
-    </>
+
+      <ModalDetalleVisitante
+        visitante={visitanteDetalle}
+        onHide={() => setVisitanteDetalle(null)}
+      />
+    </section>
   );
 }

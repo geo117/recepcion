@@ -2,16 +2,13 @@ import { NavLink } from "react-router-dom";
 import {
   FiBarChart2,
   FiHome,
-  FiSettings,
   FiShield,
-  FiUsers,
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../../hooks/authContext";
 
 const ENLACES = [
   { ruta: "/recepcion", etiqueta: "Recepción", icono: FiHome, fin: true },
-  { ruta: "/recepcion/visitantes", etiqueta: "Visitantes", icono: FiUsers },
   {
     ruta: "/recepcion/reportes",
     etiqueta: "Reportes",
@@ -24,7 +21,6 @@ const ENLACES = [
     icono: FiShield,
     soloAdmin: true,
   },
-  { ruta: "/ajustes", etiqueta: "Ajustes", icono: FiSettings },
 ];
 
 export default function Sidebar({ abierto = false, onCerrar }) {
