@@ -1,0 +1,67 @@
+/* ============================================================
+   GYJ Ferreterías — Design tokens corporativos
+   Paleta: blanco, amarillo, gris cálido y negro tintado.
+   ============================================================ */
+
+:root {
+  /* Color */
+  --gyj-yellow: #f2b705;
+  --gyj-yellow-strong: #d9a404;
+  --gyj-yellow-soft: #fef3c7;
+  --gyj-white: #ffffff;
+  --gyj-gray-50: #f5f5f3;
+  --gyj-gray-100: #e8e6e1;
+  --gyj-gray-200: #dbd8d2;
+  --gyj-gray-400: #9c9890;
+  --gyj-gray-500: #76726b;
+  --gyj-gray-600: #6b6862;
+  --gyj-black: #1a1a1a;
+  --gyj-black-soft: #2d2d2a;
+  --gyj-danger: #b42318;
+  --gyj-danger-soft: #fef3f2;
+  --gyj-success: #067647;
+  --gyj-success-soft: #ecfdf3;
+
+  /* Tipografía */
+  --gyj-font-display: "Sora", "Segoe UI", sans-serif;
+  --gyj-font-body: "Source Sans 3", "Segoe UI", sans-serif;
+
+  /* Espaciado (múltiplos de 4) */
+  --gyj-space-1: 4px;
+  --gyj-space-2: 8px;
+  --gyj-space-3: 12px;
+  --gyj-space-4: 16px;
+  --gyj-space-5: 24px;
+  --gyj-space-6: 32px;
+  --gyj-space-7: 48px;
+
+  /* Radios */
+  --gyj-radius-sm: 8px;
+  --gyj-radius-md: 12px;
+  --gyj-radius-lg: 16px;
+
+  /* Elevación */
+  --gyj-shadow-sm: 0 1px 3px rgba(26, 26, 26, 0.06);
+  --gyj-shadow-md: 0 12px 32px -16px rgba(26, 26, 26, 0.18);
+  --gyj-shadow-lg: 0 28px 60px -28px rgba(26, 26, 26, 0.28);
+
+  /* Movimiento — ease-out, sin rebotes */
+  --gyj-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --gyj-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --gyj-transition: 180ms var(--gyj-ease);
+
+  /* Layout */
+  --gyj-sidebar-width: 240px;
+  --gyj-header-height: 72px;
+
+  /* Bootstrap */
+  --bs-body-font-family: var(--gyj-font-body);
+  --bs-body-color: var(--gyj-black);
+  --bs-body-bg: var(--gyj-gray-50);
+  --bs-border-color: var(--gyj-gray-100);
+  --bs-primary: var(--gyj-yellow);
+  --bs-primary-rgb: 242, 183, 5;
+  --bs-link-color: #8a6a00;
+  --bs-link-hover-color: var(--gyj-black);
+  --bs-focus-ring-color: rgba(242, 183, 5, 0.35);
+}
