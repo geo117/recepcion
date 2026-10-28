@@ -114,6 +114,8 @@ function construirVisita(base) {
     arl: base.arl ?? "",
     rh: base.rh ?? "",
     foto: base.foto ?? "",
+    companyReg: base.companyReg ?? 2,
+    companyNombre: base.companyNombre ?? "GYJ Ferreterías",
     fecha: base.fecha,
     horaEntrada: base.horaEntrada,
     horaSalida: base.horaSalida ?? null,

@@ -2,6 +2,17 @@ import { limpiarEspacios, validarNombre } from "./validaciones";
 
 export const EMPRESAS = ["GYJ Ferreterías", "Almasa", "Colmena"];
 
+/** Códigos usados en visitantes.company_reg */
+export const EMPRESAS_POR_CODIGO = {
+  2: "GYJ Ferreterías",
+  3: "Almasa",
+  4: "Colmena",
+};
+
+export function empresaPorCodigo(codigo) {
+  return EMPRESAS_POR_CODIGO[Number(codigo)] ?? "";
+}
+
 export const ROLES_USUARIO = [
   { valor: "recepcionista", etiqueta: "Recepcionista" },
   { valor: "admin", etiqueta: "Administrador" },

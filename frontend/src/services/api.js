@@ -21,6 +21,7 @@ const MENSAJES = {
   404: "No encontramos la información solicitada.",
   409: "La operación no se pudo completar por un conflicto con los datos.",
   422: "Algunos datos no son válidos. Revísalos e intenta nuevamente.",
+  429: "Demasiados intentos. Espera unos minutos antes de volver a intentar.",
   500: "El servidor no está disponible en este momento. Intenta más tarde.",
 };
 

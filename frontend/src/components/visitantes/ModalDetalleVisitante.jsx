@@ -71,7 +71,7 @@ export default function ModalDetalleVisitante({ visitante, onHide }) {
                 etiqueta="Persona a visitar"
                 valor={visitante.personaVisitar}
               />
-              <Dato etiqueta="Motivo" valor={visitante.motivo} />
+              <Dato etiqueta="Area" valor={visitante.motivo} />
               <Dato
                 etiqueta="Fecha"
                 valor={formatearFechaLarga(visitante.fecha)}

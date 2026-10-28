@@ -2,9 +2,15 @@ import { Modal } from "react-bootstrap";
 import { FiCamera, FiPrinter } from "react-icons/fi";
 import { alertaExito } from "../../utils/alertas";
 import { formatearFecha, formatearHora } from "../../utils/fecha";
+import { empresaPorCodigo } from "../../utils/usuarios";
 import GYJButton from "../ui/GYJButton";
 
 export default function ModalImprimirEtiqueta({ visitante, onHide }) {
+  const empresaRegistro =
+    visitante?.companyNombre ||
+    empresaPorCodigo(visitante?.companyReg) ||
+    "GYJ Ferreterías";
+
   const imprimir = async () => {
     if (!visitante) return;
     await alertaExito(
@@ -44,7 +50,7 @@ export default function ModalImprimirEtiqueta({ visitante, onHide }) {
                     GYJ
                   </span>
                   <span className="etiqueta-visita__empresa">
-                    GYJ Ferreterías
+                    {empresaRegistro}
                   </span>
                 </div>
 
@@ -62,7 +68,26 @@ export default function ModalImprimirEtiqueta({ visitante, onHide }) {
                   <div className="etiqueta-visita__campo">
                     <span className="etiqueta-visita__etiqueta">Empresa</span>
                     <span className="etiqueta-visita__valor">
+                      {empresaRegistro}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="etiqueta-visita__fila">
+                  <div className="etiqueta-visita__campo">
+                    <span className="etiqueta-visita__etiqueta">
+                      Procedencia
+                    </span>
+                    <span className="etiqueta-visita__valor">
                       {visitante.empresa || "—"}
+                    </span>
+                  </div>
+                  <div className="etiqueta-visita__campo">
+                    <span className="etiqueta-visita__etiqueta">
+                      Área que visita
+                    </span>
+                    <span className="etiqueta-visita__valor">
+                      {visitante.motivo || "—"}
                     </span>
                   </div>
                 </div>
@@ -78,6 +103,23 @@ export default function ModalImprimirEtiqueta({ visitante, onHide }) {
                     <span className="etiqueta-visita__etiqueta">Hora</span>
                     <span className="etiqueta-visita__valor">
                       {formatearHora(visitante.horaEntrada)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="etiqueta-visita__fila">
+                  <div className="etiqueta-visita__campo">
+                    <span className="etiqueta-visita__etiqueta">RH</span>
+                    <span className="etiqueta-visita__valor">
+                      {visitante.rh || "—"}
+                    </span>
+                  </div>
+                  <div className="etiqueta-visita__campo">
+                    <span className="etiqueta-visita__etiqueta">
+                      Teléfono de emergencia
+                    </span>
+                    <span className="etiqueta-visita__valor">
+                      {visitante.telefonoEmergencia || "—"}
                     </span>
                   </div>
                 </div>

@@ -1,0 +1,108 @@
+﻿/* ============================================================================
+   GYJ FERRETERÍAS — SISTEMA DE RECEPCIÓN DE VISITANTES
+   Base de datos: recepcion_bd
+   Motor: Microsoft SQL Server
+   ----------------------------------------------------------------------------
+   Contenido:
+     1. Creación de la base de datos recepcion_bd
+     2. Tabla dbo.usuarios
+     3. Tabla dbo.visitantes
+
+   Sin PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK ni DEFAULT: las validaciones se
+   realizan en la aplicación.
+
+   La contraseña se guarda en texto plano en el campo password y será
+   convertida a hash mediante una función de Python.
+
+   Ejecutar con SSMS, Azure Data Studio o:
+     sqlcmd -S localhost -E -i base_datos.txt
+   ============================================================================ */
+
+IF DB_ID(N'recepcion_bd') IS NULL
+BEGIN
+    PRINT 'Creando la base de datos recepcion_bd...';
+    CREATE DATABASE recepcion_bd;
+END
+ELSE
+BEGIN
+    PRINT 'La base de datos recepcion_bd ya existe.';
+END
+GO
+
+USE recepcion_bd;
+GO
+
+/* ============================================================================
+   1. TABLA USUARIOS
+   ----------------------------------------------------------------------------
+   Campos de la vista frontend/src/pages/Administracion.jsx:
+   nombre, usuario, password, empresa, rol, estado, creadoEn.
+   ============================================================================ */
+
+IF OBJECT_ID(N'dbo.usuarios', N'U') IS NULL
+BEGIN
+    PRINT 'Creando la tabla dbo.usuarios...';
+
+    CREATE TABLE dbo.usuarios
+    (
+        id              INT IDENTITY(1,1),
+        nombre          NVARCHAR(80),
+        usuario         NVARCHAR(20),
+        password        NVARCHAR(255),
+        empresa         NVARCHAR(60),
+        rol             NVARCHAR(20),
+        estado          NVARCHAR(10),
+        creado_en       DATETIME2,
+        actualizado_en  DATETIME2
+    );
+END
+GO
+
+/* ============================================================================
+   2. TABLA VISITANTES
+   ----------------------------------------------------------------------------
+   Campos de frontend/src/components/visitantes/ModalAgregarVisita.jsx más los
+   generados por el servidor: fecha, hora_entrada, hora_salida, estado,
+   registrado_por y company_reg (2 = GYJ Ferreterías, 3 = Almasa, 4 = Colmena).
+   ============================================================================ */
+
+IF OBJECT_ID(N'dbo.visitantes', N'U') IS NULL
+BEGIN
+    PRINT 'Creando la tabla dbo.visitantes...';
+
+    CREATE TABLE dbo.visitantes
+    (
+        id                   BIGINT IDENTITY(1,1),
+        nombre               NVARCHAR(80),
+        documento            NVARCHAR(12),
+        empresa              NVARCHAR(60),
+        company_reg          INT,
+        persona_id           NVARCHAR(20),
+        persona_visitar      NVARCHAR(120),
+        motivo               NVARCHAR(120),
+        telefono             NVARCHAR(10),
+        telefono_emergencia  NVARCHAR(10),
+        eps                  NVARCHAR(60),
+        arl                  NVARCHAR(60),
+        rh                   NVARCHAR(5),
+        foto                 NVARCHAR(MAX),
+        fecha                DATE,
+        hora_entrada         TIME(0),
+        hora_salida          TIME(0),
+        estado               NVARCHAR(10),
+        registrado_por       NVARCHAR(80),
+        creado_en            DATETIME2,
+        actualizado_en       DATETIME2
+    );
+END
+GO
+
+/* Compatibilidad con bases creadas antes de agregar la columna. */
+IF COL_LENGTH(N'dbo.visitantes', N'company_reg') IS NULL
+BEGIN
+    ALTER TABLE dbo.visitantes ADD company_reg INT NULL;
+END
+GO
+
+PRINT 'Base de datos recepcion_bd creada correctamente.';
+GO
