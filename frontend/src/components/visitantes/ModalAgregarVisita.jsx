@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, Modal } from "react-bootstrap";
 import {
   FiCamera,
@@ -17,10 +17,11 @@ import {
   alertaTemporal,
   confirmarAccion,
 } from "../../utils/alertas";
-import { formatearHora } from "../../utils/fecha";
+import { formatearFechaLarga, formatearHora, hoyISO } from "../../utils/fecha";
 import { nombreArchivoFoto } from "../../utils/fotos";
 import {
   EPS,
+  GRUPOS_SANGUINEOS,
   sanitizarTexto,
   validarDocumento,
   validarRegistro,
@@ -40,6 +41,7 @@ const FORMULARIO_INICIAL = {
   telefonoEmergencia: "",
   eps: "",
   arl: "",
+  rh: "",
 };
 
 export default function ModalAgregarVisita({ show = false, onHide, onRegistrado }) {
@@ -54,9 +56,11 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
   const [errorEmpleados, setErrorEmpleados] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [salida, setSalida] = useState(null);
-  const [buscandoSalida, setBuscandoSalida] = useState(false);
+  const [visitaEncontrada, setVisitaEncontrada] = useState(null);
+  const [buscandoHistorial, setBuscandoHistorial] = useState(false);
   const [procesandoSalida, setProcesandoSalida] = useState(false);
   const [reintentoEmpleados, setReintentoEmpleados] = useState(0);
+  const busquedaRef = useRef(0);
 
   useEffect(() => {
     let activo = true;
@@ -96,7 +100,36 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
     if (errores[campo]) {
       setErrores((actuales) => ({ ...actuales, [campo]: "" }));
     }
-    if (campo === "documento") setSalida(null);
+  };
+
+  const limpiarDatosRecuperados = (documento = "") => {
+    busquedaRef.current += 1;
+    setBuscandoHistorial(false);
+    setVisitaEncontrada(null);
+    setSalida(null);
+    setPersonaTexto("");
+    setFoto("");
+    setErrores({});
+    setDatos({ ...FORMULARIO_INICIAL, documento });
+  };
+
+  const manejarDocumento = (valor) => {
+    const documento = valor
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase();
+
+    if (visitaEncontrada) {
+      limpiarDatosRecuperados(documento);
+      return;
+    }
+
+    busquedaRef.current += 1;
+    setBuscandoHistorial(false);
+    setSalida(null);
+    setDatos((actuales) => ({ ...actuales, documento }));
+    if (errores.documento) {
+      setErrores((actuales) => ({ ...actuales, documento: "" }));
+    }
   };
 
   const manejarPersona = (valor) => {
@@ -114,28 +147,74 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
     }
   };
 
-  const buscarSalidaPendiente = async () => {
-    if (validarDocumento(datos.documento)) {
+  const aplicarVisitaEncontrada = (visita) => {
+    setVisitaEncontrada(visita);
+    setPersonaTexto(visita.personaVisitar ?? "");
+    setDatos((actuales) => ({
+      ...actuales,
+      documento: String(visita.documento ?? actuales.documento).toUpperCase(),
+      nombre: visita.nombre ?? "",
+      empresa: visita.empresa ?? "",
+      personaId: visita.personaId ?? "",
+      motivo: visita.motivo ?? "",
+      telefono: visita.telefono ?? "",
+      telefonoEmergencia: visita.telefonoEmergencia ?? "",
+      eps: visita.eps ?? "",
+      arl: visita.arl ?? "",
+      rh: visita.rh ?? "",
+    }));
+    setFoto(visita.foto ?? "");
+    setErrores({});
+    const estaActiva =
+      visita.fecha === hoyISO() && visita.estado === "dentro";
+    setSalida(estaActiva ? visita : null);
+  };
+
+  const buscarHistorial = async (documentoParametro) => {
+    const documento = String(documentoParametro ?? datos.documento)
+      .trim()
+      .toUpperCase();
+
+    if (validarDocumento(documento)) {
+      busquedaRef.current += 1;
+      setBuscandoHistorial(false);
+      setVisitaEncontrada(null);
       setSalida(null);
       return;
     }
 
-    setBuscandoSalida(true);
+    const solicitud = ++busquedaRef.current;
+    setBuscandoHistorial(true);
+
     try {
-      const encontrada = await api.buscarVisitaAbierta(datos.documento);
-      setSalida(encontrada);
+      const encontrada = await api.buscarUltimaVisita(documento);
+      if (solicitud !== busquedaRef.current) return;
+
+      if (!encontrada) {
+        setVisitaEncontrada(null);
+        setSalida(null);
+        return;
+      }
+
+      aplicarVisitaEncontrada(encontrada);
     } catch {
-      setSalida(null);
+      if (solicitud === busquedaRef.current) {
+        setVisitaEncontrada(null);
+        setSalida(null);
+      }
     } finally {
-      setBuscandoSalida(false);
+      if (solicitud === busquedaRef.current) setBuscandoHistorial(false);
     }
   };
 
   const resetear = () => {
+    busquedaRef.current += 1;
     setDatos(FORMULARIO_INICIAL);
     setPersonaTexto("");
     setErrores({});
     setSalida(null);
+    setVisitaEncontrada(null);
+    setBuscandoHistorial(false);
     setFoto("");
     setFotoAbierta(false);
   };
@@ -163,6 +242,7 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
       telefonoEmergencia: sanitizarTexto(datos.telefonoEmergencia, 10),
       eps: sanitizarTexto(datos.eps, 60),
       arl: sanitizarTexto(datos.arl, 60),
+      rh: datos.rh,
       foto,
       registradoPor: usuario?.nombre ?? "Recepcionista",
     };
@@ -228,6 +308,7 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
       onHide={cerrar}
       centered
       size="lg"
+      scrollable
       dialogClassName="gyj-modal"
       backdrop={enviando || procesandoSalida ? "static" : true}
       keyboard={!fotoAbierta && !enviando && !procesandoSalida}
@@ -302,20 +383,21 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
               name="documento"
               placeholder="CC, CE o pasaporte"
               value={datos.documento}
-              onChange={(evento) =>
-                actualizarCampo(
-                  "documento",
-                  evento.target.value
-                    .replace(/[^a-zA-Z0-9]/g, "")
-                    .toUpperCase(),
-                )
-              }
-              onBlur={buscarSalidaPendiente}
+              onChange={(evento) => manejarDocumento(evento.target.value)}
+              onBlur={(evento) => buscarHistorial(evento.target.value)}
+              onKeyDown={(evento) => {
+                if (evento.key === "Enter") {
+                  evento.preventDefault();
+                  buscarHistorial(evento.currentTarget.value);
+                }
+              }}
               error={errores.documento}
               ayuda={
-                buscandoSalida
-                  ? "Buscando visita activa…"
-                  : "Entre 6 y 12 caracteres."
+                buscandoHistorial
+                  ? "Buscando visitas anteriores…"
+                  : visitaEncontrada
+                    ? "Datos de una visita anterior cargados."
+                    : "Entre 6 y 12 caracteres. Buscamos visitas anteriores al salir del campo."
               }
               maxLength={12}
               autoComplete="off"
@@ -421,6 +503,30 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
               ))}
             </datalist>
 
+            <Form.Group className="gyj-campo">
+              <Form.Label htmlFor="rh">RH</Form.Label>
+              <Form.Select
+                id="rh"
+                name="rh"
+                value={datos.rh}
+                onChange={(evento) =>
+                  actualizarCampo("rh", evento.target.value)
+                }
+                isInvalid={Boolean(errores.rh)}
+                aria-invalid={Boolean(errores.rh)}
+              >
+                <option value="">Selecciona el grupo sanguíneo</option>
+                {GRUPOS_SANGUINEOS.map((grupo) => (
+                  <option key={grupo} value={grupo}>
+                    {grupo}
+                  </option>
+                ))}
+              </Form.Select>
+              {errores.rh && (
+                <div className="invalid-feedback d-block">{errores.rh}</div>
+              )}
+            </Form.Group>
+
             <GYJInput
               label="Area de visita"
               name="motivo"
@@ -461,6 +567,18 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
               >
                 Reintentar
               </GYJButton>
+            </div>
+          )}
+
+          {visitaEncontrada && !salida && (
+            <div className="aviso-sesion" role="status">
+              <FiInfo aria-hidden="true" />
+              <span>
+                Datos recuperados de la visita del{" "}
+                <strong>{formatearFechaLarga(visitaEncontrada.fecha)}</strong> a
+                las {formatearHora(visitaEncontrada.horaEntrada)} — se
+                registrará una nueva entrada con la fecha y hora actuales.
+              </span>
             </div>
           )}
 
@@ -508,7 +626,9 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
           form="form-agregar-visita"
           icono={FiUserPlus}
           cargando={enviando}
-          disabled={cargandoEmpleados || Boolean(errorEmpleados)}
+          disabled={
+            cargandoEmpleados || Boolean(errorEmpleados) || buscandoHistorial
+          }
         >
           Registrar entrada
         </GYJButton>

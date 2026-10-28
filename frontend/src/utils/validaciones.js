@@ -79,6 +79,14 @@ export function validarArl(valor) {
   return "";
 }
 
+export function validarRh(valor) {
+  const rh = String(valor ?? "").trim();
+  if (rh && !GRUPOS_SANGUINEOS.includes(rh)) {
+    return "Selecciona un grupo sanguíneo válido.";
+  }
+  return "";
+}
+
 export function validarPersona(valor) {
   return valor ? "" : "Selecciona la persona a visitar.";
 }
@@ -99,6 +107,7 @@ export function validarRegistro(campos) {
     telefonoEmergencia: validarTelefonoEmergencia(campos.telefonoEmergencia),
     eps: validarEps(campos.eps),
     arl: validarArl(campos.arl),
+    rh: validarRh(campos.rh),
     personaId: validarPersona(campos.personaId),
     motivo: validarMotivo(campos.motivo),
   };
@@ -121,6 +130,17 @@ export const EPS = [
   "Asmet Salud",
   "Savia Salud",
   "Otra",
+];
+
+export const GRUPOS_SANGUINEOS = [
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
 ];
 
 export const ESTADOS = [

@@ -23,6 +23,11 @@ npm run dev
 
 La aplicación queda disponible en `http://localhost:5173`.
 
+Al registrar una visita, el documento de identidad funciona como llave: al
+salir del campo se busca la última visita de esa persona y, si existe, se
+precargan sus datos (incluido el RH) para registrar una nueva entrada con la
+fecha y hora actuales.
+
 ### Modo demostración
 
 Sin backend configurado, la app funciona con un adaptador local que guarda los
@@ -34,8 +39,11 @@ datos en `localStorage`. Credenciales de ejemplo:
 | `recepcion` | `recepcion123` | Recepcionista |
 
 Solo el rol **admin** puede eliminar registros, acceder a Reportes y gestionar
-usuarios desde **Administración**. Los usuarios creados en modo demo se guardan
-en el navegador y pueden iniciar sesión de inmediato.
+usuarios desde **Administración**. Allí puede crear cuentas, editarlas,
+cambiarles la contraseña, activarlas, desactivarlas o eliminarlas. Los usuarios
+creados en modo demo se guardan en el navegador y pueden iniciar sesión de
+inmediato; un usuario desactivado no puede ingresar hasta que vuelva a
+activarse.
 
 ### Conectar el backend
 
@@ -65,18 +73,18 @@ npm run lint     # ESLint
 | `/recepcion` | Registro y consulta de visitantes |
 | `/recepcion/visitantes/:id` | Detalle y edición del registro |
 | `/recepcion/reportes` | Reportes y exportación (solo admin) |
-| `/administracion` | Usuarios activos y creación de accesos (solo admin) |
+| `/administracion` | Usuarios, estados y creación de accesos (solo admin) |
 
 ## Estructura
 
 ```text
 src/
 ├── components/
-│   ├── layout/       Sidebar, Header, AppShell, ProtectedRoute
+│   ├── layout/       Sidebar, Header, AppShell, ProtectedRoute, AccesoRestringido
 │   ├── ui/           GYJButton, GYJCard, GYJBadge, GYJInput
-│   └── visitantes/   ListaVisitantes, ModalAgregarVisita, ModalDetalleVisitante, TablaVisitantes
+│   └── visitantes/   ListaVisitantes, TablaVisitantes, MenuAcciones y modales de visitas
 ├── hooks/            AuthProvider, useAuth, useInactividad
-├── pages/            Login, Dashboard, Detalle, Reportes, Administración
+├── pages/            Login, Dashboard, DetalleVisitante, Reportes, Administración
 ├── services/         api, adaptador demo, sesión
 ├── styles/           tokens.css, global.css
 └── utils/            alertas, csv, fechas, usuarios y validaciones
@@ -98,9 +106,13 @@ POST   /api/auth/login
 GET    /api/empleados
 GET    /api/usuarios
 POST   /api/usuarios
+PUT    /api/usuarios/:id
+PATCH  /api/usuarios/:id/estado
+DELETE /api/usuarios/:id
 GET    /api/visitas
 GET    /api/visitas/:id
 GET    /api/visitas/abierta?documento=
+GET    /api/visitas/ultima?documento=
 POST   /api/visitas
 PATCH  /api/visitas/:id/salida
 PUT    /api/visitas/:id

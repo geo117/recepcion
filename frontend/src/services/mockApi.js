@@ -112,6 +112,7 @@ function construirVisita(base) {
     telefonoEmergencia: base.telefonoEmergencia ?? "",
     eps: base.eps ?? "",
     arl: base.arl ?? "",
+    rh: base.rh ?? "",
     foto: base.foto ?? "",
     fecha: base.fecha,
     horaEntrada: base.horaEntrada,
@@ -329,11 +330,7 @@ export async function iniciarSesion({ usuario, password }) {
 
 export async function listarUsuarios() {
   await esperar(260);
-  return ordenarUsuarios(
-    cargarUsuarios()
-      .filter((item) => item.estado === "activo")
-      .map(usuarioPublico),
-  );
+  return ordenarUsuarios(cargarUsuarios().map(usuarioPublico));
 }
 
 export async function crearUsuario(datos) {
@@ -364,6 +361,130 @@ export async function crearUsuario(datos) {
 
   guardarUsuarios([nuevo, ...usuarios]);
   return usuarioPublico(nuevo);
+}
+
+export async function actualizarUsuario(id, datos) {
+  await esperar(460);
+  const usuarios = cargarUsuarios();
+  const indice = usuarios.findIndex((item) => item.id === id);
+
+  if (indice === -1) {
+    throw new ErrorApi("No encontramos el usuario solicitado.", 404);
+  }
+
+  const usuario = usuarios[indice];
+  const usuarioNormalizado = String(datos.usuario).trim().toLowerCase();
+
+  if (
+    usuarios.some(
+      (item) =>
+        item.id !== id &&
+        item.usuario.toLowerCase() === usuarioNormalizado,
+    )
+  ) {
+    throw new ErrorApi("Ese nombre de usuario ya está registrado.", 409);
+  }
+
+  if (!["admin", "recepcionista"].includes(datos.rol)) {
+    throw new ErrorApi("El perfil de acceso no es válido.", 400);
+  }
+
+  const esAdmin = datos.rol === "admin";
+
+  if (
+    usuario.rol === "admin" &&
+    usuario.estado === "activo" &&
+    !esAdmin &&
+    !usuarios.some(
+      (item) =>
+        item.id !== id && item.rol === "admin" && item.estado === "activo",
+    )
+  ) {
+    throw new ErrorApi(
+      "Debe existir al menos un administrador activo en el sistema.",
+      409,
+    );
+  }
+
+  const actualizado = {
+    ...usuario,
+    nombre: String(datos.nombre).trim(),
+    usuario: usuarioNormalizado,
+    empresa: datos.empresa,
+    rol: esAdmin ? "admin" : "recepcionista",
+    cargo: esAdmin ? "Administrador" : "Recepcionista",
+  };
+
+  if (datos.password) actualizado.clave = datos.password;
+
+  usuarios[indice] = actualizado;
+  guardarUsuarios(usuarios);
+  return usuarioPublico(actualizado);
+}
+
+export async function actualizarEstadoUsuario(id, estado) {
+  await esperar(380);
+  const usuarios = cargarUsuarios();
+  const indice = usuarios.findIndex((item) => item.id === id);
+
+  if (indice === -1) {
+    throw new ErrorApi("No encontramos el usuario solicitado.", 404);
+  }
+  if (!["activo", "inactivo"].includes(estado)) {
+    throw new ErrorApi("El estado solicitado no es válido.", 400);
+  }
+
+  const usuario = usuarios[indice];
+
+  if (
+    usuario.rol === "admin" &&
+    usuario.estado === "activo" &&
+    estado === "inactivo" &&
+    !usuarios.some(
+      (item) =>
+        item.id !== id && item.rol === "admin" && item.estado === "activo",
+    )
+  ) {
+    throw new ErrorApi(
+      "Debe existir al menos un administrador activo en el sistema.",
+      409,
+    );
+  }
+
+  const actualizado = { ...usuario, estado };
+  usuarios[indice] = actualizado;
+  guardarUsuarios(usuarios);
+  return usuarioPublico(actualizado);
+}
+
+export async function eliminarUsuario(id) {
+  await esperar(420);
+  const usuarios = cargarUsuarios();
+  const indice = usuarios.findIndex((item) => item.id === id);
+
+  if (indice === -1) {
+    throw new ErrorApi("No encontramos el usuario solicitado.", 404);
+  }
+
+  const usuario = usuarios[indice];
+
+  if (
+    usuario.rol === "admin" &&
+    usuario.estado === "activo" &&
+    !usuarios.some(
+      (item) =>
+        item.id !== id && item.rol === "admin" && item.estado === "activo",
+    )
+  ) {
+    throw new ErrorApi(
+      "No puedes eliminar al último administrador activo del sistema.",
+      409,
+    );
+  }
+
+  usuarios.splice(indice, 1);
+  guardarUsuarios(usuarios);
+  return { ok: true };
 }
 
 export async function listarEmpleados() {
@@ -459,6 +580,22 @@ export async function buscarVisitaAbierta(documento) {
   return visita ? { ...visita } : null;
 }
 
+export async function buscarUltimaVisita(documento) {
+  await esperar(320);
+  const normalizado = String(documento).trim().toLowerCase();
+  if (!normalizado) return null;
+
+  const visitas = cargar()
+    .filter((item) => item.documento.toLowerCase() === normalizado)
+    .sort((a, b) =>
+      `${b.fecha}T${b.horaEntrada}`.localeCompare(
+        `${a.fecha}T${a.horaEntrada}`,
+      ),
+    );
+
+  return visitas[0] ? { ...visitas[0] } : null;
+}
+
 export async function crearVisita(datos) {
   await esperar(520);
   const visitas = cargar();
@@ -488,6 +625,7 @@ export async function crearVisita(datos) {
     telefonoEmergencia: datos.telefonoEmergencia,
     eps: datos.eps,
     arl: datos.arl,
+    rh: datos.rh,
     foto: datos.foto,
     fecha: hoyISO(),
     horaEntrada: horaActual(),
@@ -537,6 +675,7 @@ export async function actualizarVisita(id, cambios) {
       cambios.telefonoEmergencia ?? visita.telefonoEmergencia,
     eps: cambios.eps ?? visita.eps,
     arl: cambios.arl ?? visita.arl,
+    rh: cambios.rh ?? visita.rh,
     foto: cambios.foto ?? visita.foto,
     actualizadoEn: new Date().toISOString(),
   };

@@ -2,13 +2,22 @@ import { useEffect, useState } from "react";
 import { Form, Modal, Table } from "react-bootstrap";
 import {
   FiAtSign,
+  FiEdit2,
   FiLock,
+  FiTrash2,
+  FiUserCheck,
   FiUserPlus,
+  FiUserX,
   FiUsers,
 } from "react-icons/fi";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/authContext";
-import { alertaError, alertaExito } from "../utils/alertas";
+import {
+  alertaError,
+  alertaExito,
+  alertaTemporal,
+  confirmarAccion,
+} from "../utils/alertas";
 import { formatearFechaHora } from "../utils/fecha";
 import { iniciales } from "../utils/validaciones";
 import {
@@ -21,6 +30,8 @@ import {
 import AccesoRestringido from "../components/layout/AccesoRestringido";
 import GYJButton from "../components/ui/GYJButton";
 import GYJInput from "../components/ui/GYJInput";
+import ModalEditarUsuario from "../components/usuarios/ModalEditarUsuario";
+import MenuAcciones from "../components/visitantes/MenuAcciones";
 
 const FORMULARIO_INICIAL = {
   nombre: "",
@@ -32,6 +43,7 @@ const FORMULARIO_INICIAL = {
 };
 
 function PanelAdministracion() {
+  const { usuario: usuarioActual, actualizarUsuarioSesion } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -40,6 +52,8 @@ function PanelAdministracion() {
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
   const [errores, setErrores] = useState({});
   const [creando, setCreando] = useState(false);
+  const [procesandoId, setProcesandoId] = useState("");
+  const [usuarioEditando, setUsuarioEditando] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -139,21 +153,93 @@ function PanelAdministracion() {
     }
   };
 
+  const alternarEstado = async (usuario) => {
+    const estaActivo = usuario.estado === "activo";
+    const confirmado = await confirmarAccion(
+      estaActivo ? "Desactivar usuario" : "Activar usuario",
+      estaActivo
+        ? `${usuario.nombre} no podrá iniciar sesión hasta que vuelvas a activarlo.`
+        : `${usuario.nombre} podrá iniciar sesión nuevamente con su contraseña actual.`,
+      { confirmar: estaActivo ? "Desactivar" : "Activar" },
+    );
+    if (!confirmado) return;
+
+    setProcesandoId(usuario.id);
+    try {
+      const actualizado = await api.actualizarEstadoUsuario(
+        usuario.id,
+        estaActivo ? "inactivo" : "activo",
+      );
+      setUsuarios((actuales) =>
+        actuales.map((item) =>
+          item.id === actualizado.id ? actualizado : item,
+        ),
+      );
+      alertaTemporal(
+        estaActivo ? "Usuario desactivado" : "Usuario activado",
+        estaActivo
+          ? `${usuario.nombre} ya no podrá iniciar sesión.`
+          : `${usuario.nombre} ya puede iniciar sesión.`,
+      );
+    } catch (fallo) {
+      await alertaError(
+        "No se pudo actualizar el usuario",
+        fallo?.codigo === 409
+          ? fallo.message
+          : "Intenta nuevamente en unos segundos.",
+      );
+    } finally {
+      setProcesandoId("");
+    }
+  };
+
+  const eliminar = async (usuario) => {
+    const confirmado = await confirmarAccion(
+      "Eliminar usuario",
+      `Se eliminará permanentemente la cuenta de ${usuario.nombre}. Esta acción no se puede deshacer.`,
+      { confirmar: "Eliminar usuario" },
+    );
+    if (!confirmado) return;
+
+    setProcesandoId(usuario.id);
+    try {
+      await api.eliminarUsuario(usuario.id);
+      setUsuarios((actuales) =>
+        actuales.filter((item) => item.id !== usuario.id),
+      );
+      await alertaExito(
+        "Usuario eliminado",
+        "La cuenta ya no tiene acceso al sistema.",
+      );
+    } catch (fallo) {
+      await alertaError(
+        "No se pudo eliminar el usuario",
+        fallo?.codigo === 409
+          ? fallo.message
+          : "Intenta nuevamente en unos segundos.",
+      );
+    } finally {
+      setProcesandoId("");
+    }
+  };
+
+  const activos = usuarios.filter((item) => item.estado === "activo").length;
+
   return (
     <>
       <div className="page-head">
         <div>
           <h1 className="page-head__titulo">Administración</h1>
           <p className="page-head__descripcion">
-            Consulta los usuarios activos y crea accesos para el personal de las
-            empresas del grupo.
+            Consulta y administra los accesos del personal de las empresas del
+            grupo.
           </p>
         </div>
         <div className="page-head__acciones">
           <span className="gyj-badge gyj-badge--activo" aria-live="polite">
             {cargando
               ? "Cargando…"
-              : `${usuarios.length} ${usuarios.length === 1 ? "activo" : "activos"}`}
+              : `${activos} ${activos === 1 ? "activo" : "activos"}`}
           </span>
           <GYJButton icono={FiUserPlus} onClick={abrirModal}>
             Nuevo usuario
@@ -164,10 +250,10 @@ function PanelAdministracion() {
       <section className="seccion-tabla" aria-labelledby="titulo-usuarios">
         <div className="seccion-tabla__head">
           <h2 className="seccion-tabla__titulo" id="titulo-usuarios">
-            Usuarios activos
+            Usuarios del sistema
           </h2>
           <span className="seccion-tabla__meta">
-            Personal con acceso al sistema
+            {usuarios.length} {usuarios.length === 1 ? "registrado" : "registrados"}
           </span>
         </div>
 
@@ -191,13 +277,17 @@ function PanelAdministracion() {
           ) : usuarios.length === 0 ? (
             <div className="tabla-vacia">
               <FiUsers aria-hidden="true" />
-              <p className="tabla-vacia__titulo">Aún no hay usuarios activos</p>
+              <p className="tabla-vacia__titulo">Aún no hay usuarios registrados</p>
               <p className="tabla-vacia__texto">
                 Crea el primer acceso para el personal de recepción.
               </p>
             </div>
           ) : (
-            <Table responsive hover className="gyj-table align-middle">
+            <Table
+              responsive
+              hover
+              className="gyj-table gyj-table--usuarios align-middle"
+            >
               <thead>
                 <tr>
                   <th scope="col">Usuario</th>
@@ -205,40 +295,97 @@ function PanelAdministracion() {
                   <th scope="col">Perfil</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Creado</th>
+                  <th scope="col" className="text-end">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((usuario) => (
-                  <tr key={usuario.id}>
-                    <td>
-                      <div className="usuario-celda">
-                        <span className="usuario-celda__avatar" aria-hidden="true">
-                          {iniciales(usuario.nombre)}
-                        </span>
-                        <div className="usuario-celda__datos">
-                          <span className="usuario-celda__nombre">
-                            {usuario.nombre}
+                {usuarios.map((usuario) => {
+                  const esActivo = usuario.estado === "activo";
+                  const esPropio = usuario.id === usuarioActual?.id;
+
+                  return (
+                    <tr key={usuario.id}>
+                      <td>
+                        <div className="usuario-celda">
+                          <span
+                            className={`usuario-celda__avatar ${
+                              esActivo
+                                ? ""
+                                : "usuario-celda__avatar--inactivo"
+                            }`.trim()}
+                            aria-hidden="true"
+                          >
+                            {iniciales(usuario.nombre)}
                           </span>
-                          <span className="usuario-celda__usuario">
-                            @{usuario.usuario}
-                          </span>
+                          <div className="usuario-celda__datos">
+                            <span className="usuario-celda__nombre">
+                              {usuario.nombre}
+                            </span>
+                            <span className="usuario-celda__usuario">
+                              @{usuario.usuario}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>{usuario.empresa || "—"}</td>
-                    <td>{etiquetaRol(usuario.rol)}</td>
-                    <td>
-                      <span className="gyj-badge gyj-badge--activo">
-                        Activo
-                      </span>
-                    </td>
-                    <td className="gyj-table__hora">
-                      {usuario.creadoEn
-                        ? formatearFechaHora(usuario.creadoEn)
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>{usuario.empresa || "—"}</td>
+                      <td>{etiquetaRol(usuario.rol)}</td>
+                      <td>
+                        <span
+                          className={`gyj-badge ${
+                            esActivo
+                              ? "gyj-badge--activo"
+                              : "gyj-badge--inactivo"
+                          }`}
+                        >
+                          {esActivo ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
+                      <td className="gyj-table__hora">
+                        {usuario.creadoEn
+                          ? formatearFechaHora(usuario.creadoEn)
+                          : "—"}
+                      </td>
+                      <td>
+                        <div className="gyj-table__acciones">
+                          <MenuAcciones
+                            etiqueta={`Acciones para ${usuario.nombre}`}
+                            deshabilitado={procesandoId === usuario.id}
+                            nota={
+                              esPropio
+                                ? "No puedes desactivar ni eliminar tu propia cuenta."
+                                : ""
+                            }
+                            acciones={[
+                              {
+                                etiqueta: "Editar usuario",
+                                icono: FiEdit2,
+                                onClick: () => setUsuarioEditando(usuario),
+                              },
+                              {
+                                etiqueta: esActivo
+                                  ? "Desactivar usuario"
+                                  : "Activar usuario",
+                                icono: esActivo ? FiUserX : FiUserCheck,
+                                deshabilitado: esPropio,
+                                onClick: () => alternarEstado(usuario),
+                              },
+                              { separador: true },
+                              {
+                                etiqueta: "Eliminar usuario",
+                                icono: FiTrash2,
+                                peligro: true,
+                                deshabilitado: esPropio,
+                                onClick: () => eliminar(usuario),
+                              },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           )}
@@ -250,6 +397,7 @@ function PanelAdministracion() {
         onHide={cerrarModal}
         centered
         size="lg"
+        scrollable
         dialogClassName="gyj-modal"
         backdrop={creando ? "static" : true}
         keyboard={!creando}
@@ -266,12 +414,11 @@ function PanelAdministracion() {
 
         <Modal.Body>
           <Form id="form-nuevo-usuario" onSubmit={crearUsuario} noValidate>
-            <div className="registro-grid">
+            <div className="registro-grid registro-grid--tres">
               <GYJInput
                 label="Nombre completo"
                 name="nuevo-nombre"
                 placeholder="Nombre y apellido"
-                className="registro-grid__ancho"
                 value={formulario.nombre}
                 onChange={(evento) =>
                   actualizarCampo("nombre", evento.target.value)
@@ -294,7 +441,7 @@ function PanelAdministracion() {
                   actualizarCampo("usuario", evento.target.value.toLowerCase())
                 }
                 error={errores.usuario}
-                ayuda="Minúsculas, sin espacios. Se usará para iniciar sesión."
+                ayuda="Minúsculas, sin espacios."
                 maxLength={20}
                 autoComplete="off"
                 obligatorio
@@ -343,7 +490,7 @@ function PanelAdministracion() {
                   actualizarCampo("password", evento.target.value)
                 }
                 error={errores.password}
-                ayuda="Mínimo 8 caracteres, con una letra y un número."
+                ayuda="Mínimo 8: una letra y un número."
                 autoComplete="new-password"
                 obligatorio
                 required
@@ -365,7 +512,7 @@ function PanelAdministracion() {
                 required
               />
 
-              <Form.Group className="gyj-campo registro-grid__ancho">
+              <Form.Group className="gyj-campo">
                 <Form.Label htmlFor="nuevo-rol">
                   Perfil de acceso
                   <span className="marca-obligatorio" aria-hidden="true">
@@ -389,8 +536,7 @@ function PanelAdministracion() {
                   ))}
                 </Form.Select>
                 <Form.Text>
-                  El perfil administrador también puede gestionar usuarios y
-                  reportes.
+                  Los administradores gestionan usuarios y reportes.
                 </Form.Text>
                 {errores.rol && (
                   <div className="invalid-feedback d-block">{errores.rol}</div>
@@ -414,6 +560,28 @@ function PanelAdministracion() {
           </GYJButton>
         </Modal.Footer>
       </Modal>
+
+      {usuarioEditando && (
+        <ModalEditarUsuario
+          key={usuarioEditando.id}
+          usuario={usuarioEditando}
+          usuarios={usuarios}
+          onHide={() => setUsuarioEditando(null)}
+          onActualizado={(actualizado) => {
+            setUsuarios((actuales) =>
+              actuales
+                .map((item) =>
+                  item.id === actualizado.id ? actualizado : item,
+                )
+                .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+            );
+
+            if (actualizado.id === usuarioActual?.id) {
+              actualizarUsuarioSesion(actualizado);
+            }
+          }}
+        />
+      )}
     </>
   );
 }

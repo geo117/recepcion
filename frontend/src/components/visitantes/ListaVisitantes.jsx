@@ -15,6 +15,7 @@ import { hoyISO } from "../../utils/fecha";
 import { ESTADOS } from "../../utils/validaciones";
 import GYJButton from "../ui/GYJButton";
 import ModalDetalleVisitante from "./ModalDetalleVisitante";
+import ModalImprimirEtiqueta from "./ModalImprimirEtiqueta";
 import TablaVisitantes from "./TablaVisitantes";
 
 const FILTROS_INICIALES = {
@@ -28,6 +29,7 @@ const COLUMNAS_CSV = [
   "Nombre",
   "Documento",
   "EPS",
+  "RH",
   "Empresa",
   "Persona a visitar",
   "Motivo",
@@ -59,6 +61,7 @@ export default function ListaVisitantes({ recarga = 0 }) {
   const [eliminandoId, setEliminandoId] = useState("");
   const [exportando, setExportando] = useState(false);
   const [visitanteDetalle, setVisitanteDetalle] = useState(null);
+  const [visitanteEtiqueta, setVisitanteEtiqueta] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -141,10 +144,6 @@ export default function ListaVisitantes({ recarga = 0 }) {
     }
   };
 
-  const manejarImprimir = async () => {
-    await alertaExito("Etiqueta impresa", "La etiqueta ya se imprimió.");
-  };
-
   const manejarEliminar = async (visitante) => {
     const confirmado = await confirmarAccion(
       "Eliminar registro",
@@ -191,6 +190,7 @@ export default function ListaVisitantes({ recarga = 0 }) {
         visitante.nombre,
         visitante.documento,
         visitante.eps,
+        visitante.rh,
         visitante.empresa,
         visitante.personaVisitar,
         visitante.motivo,
@@ -330,7 +330,7 @@ export default function ListaVisitantes({ recarga = 0 }) {
         onPagina={setPagina}
         onReintentar={recargar}
         onVer={setVisitanteDetalle}
-        onImprimir={manejarImprimir}
+        onImprimir={setVisitanteEtiqueta}
         onSalida={manejarSalida}
         onEliminar={manejarEliminar}
       />
@@ -338,6 +338,11 @@ export default function ListaVisitantes({ recarga = 0 }) {
       <ModalDetalleVisitante
         visitante={visitanteDetalle}
         onHide={() => setVisitanteDetalle(null)}
+      />
+
+      <ModalImprimirEtiqueta
+        visitante={visitanteEtiqueta}
+        onHide={() => setVisitanteEtiqueta(null)}
       />
     </section>
   );

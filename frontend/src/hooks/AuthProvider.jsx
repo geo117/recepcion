@@ -22,6 +22,16 @@ export function AuthProvider({ children }) {
     setSesion(null);
   }, []);
 
+  const actualizarUsuarioSesion = useCallback(
+    (usuarioActualizado) => {
+      if (!sesion) return;
+      const usuario = { ...sesion.usuario, ...usuarioActualizado };
+      guardarSesion(sesion.token, usuario);
+      setSesion({ ...sesion, usuario });
+    },
+    [sesion],
+  );
+
   const valor = useMemo(
     () => ({
       sesion,
@@ -30,9 +40,15 @@ export function AuthProvider({ children }) {
       esAdmin: sesion?.usuario?.rol === "admin",
       iniciarSesion,
       cerrarSesion,
+      actualizarUsuarioSesion,
       esModoDemo,
     }),
-    [sesion, iniciarSesion, cerrarSesion],
+    [
+      sesion,
+      iniciarSesion,
+      cerrarSesion,
+      actualizarUsuarioSesion,
+    ],
   );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

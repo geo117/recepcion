@@ -59,6 +59,7 @@ export default function ModalDetalleVisitante({ visitante, onHide }) {
             <dl className="datos-lista datos-lista--tres">
               <Dato etiqueta="Documento" valor={visitante.documento} />
               <Dato etiqueta="EPS" valor={visitante.eps} />
+              <Dato etiqueta="RH" valor={visitante.rh} />
               <Dato etiqueta="Empresa" valor={visitante.empresa} />
               <Dato etiqueta="Teléfono" valor={visitante.telefono} />
               <Dato

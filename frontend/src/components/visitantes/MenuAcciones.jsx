@@ -6,7 +6,12 @@ const ANCHO_MENU = 208;
 const MARGEN = 8;
 const SEPARACION = 4;
 
-export default function MenuAcciones({ etiqueta = "Acciones", acciones = [] }) {
+export default function MenuAcciones({
+  etiqueta = "Acciones",
+  acciones = [],
+  deshabilitado = false,
+  nota = "",
+}) {
   const botonRef = useRef(null);
   const menuRef = useRef(null);
   const [abierto, setAbierto] = useState(false);
@@ -75,6 +80,10 @@ export default function MenuAcciones({ etiqueta = "Acciones", acciones = [] }) {
         top: Math.max(MARGEN, rect.top - alto - SEPARACION),
       }));
     }
+
+    const primero = menu.querySelector(".gyj-menu__item:not(:disabled)");
+    if (primero) primero.focus();
+    else menu.focus();
   }, [abierto, posicion.top]);
 
   const visibles = acciones.filter(Boolean);
@@ -89,6 +98,7 @@ export default function MenuAcciones({ etiqueta = "Acciones", acciones = [] }) {
         aria-haspopup="menu"
         aria-expanded={abierto}
         onClick={alternar}
+        disabled={deshabilitado}
       >
         <FiMoreVertical aria-hidden="true" />
       </button>
@@ -100,8 +110,15 @@ export default function MenuAcciones({ etiqueta = "Acciones", acciones = [] }) {
             className="gyj-menu"
             role="menu"
             aria-label={etiqueta}
+            tabIndex={-1}
             style={{ top: posicion.top, left: posicion.left }}
           >
+            {nota && (
+              <div className="gyj-menu__nota" role="presentation">
+                {nota}
+              </div>
+            )}
+
             {visibles.map((accion, indice) => {
               if (accion.separador) {
                 return (

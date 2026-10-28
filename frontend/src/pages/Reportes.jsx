@@ -18,6 +18,7 @@ import GYJCard from "../components/ui/GYJCard";
 const COLUMNAS_CSV = [
   "Nombre",
   "Documento",
+  "RH",
   "Empresa",
   "Persona a visitar",
   "Motivo",
@@ -110,6 +111,7 @@ function ReportesAdmin() {
         resultado.datos.map((visita) => [
           visita.nombre,
           visita.documento,
+          visita.rh,
           visita.empresa,
           visita.personaVisitar,
           visita.motivo,

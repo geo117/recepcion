@@ -135,6 +135,32 @@ export const api = {
       : peticion("/api/usuarios", { metodo: "POST", cuerpo: datos });
   },
 
+  actualizarUsuario(id, datos) {
+    return esModoDemo
+      ? demo.actualizarUsuario(id, datos)
+      : peticion(`/api/usuarios/${encodeURIComponent(id)}`, {
+          metodo: "PUT",
+          cuerpo: datos,
+        });
+  },
+
+  actualizarEstadoUsuario(id, estado) {
+    return esModoDemo
+      ? demo.actualizarEstadoUsuario(id, estado)
+      : peticion(`/api/usuarios/${encodeURIComponent(id)}/estado`, {
+          metodo: "PATCH",
+          cuerpo: { estado },
+        });
+  },
+
+  eliminarUsuario(id) {
+    return esModoDemo
+      ? demo.eliminarUsuario(id)
+      : peticion(`/api/usuarios/${encodeURIComponent(id)}`, {
+          metodo: "DELETE",
+        });
+  },
+
   async listarVisitas(filtros = {}) {
     if (esModoDemo) return demo.listarVisitas(filtros);
     const resultado = await peticion("/api/visitas", {
@@ -163,6 +189,12 @@ export const api = {
     return esModoDemo
       ? demo.buscarVisitaAbierta(documento)
       : peticion("/api/visitas/abierta", { params: { documento } });
+  },
+
+  buscarUltimaVisita(documento) {
+    return esModoDemo
+      ? demo.buscarUltimaVisita(documento)
+      : peticion("/api/visitas/ultima", { params: { documento } });
   },
 
   crearVisita(datos) {

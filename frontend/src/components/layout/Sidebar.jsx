@@ -26,6 +26,9 @@ const ENLACES = [
 export default function Sidebar({ abierto = false, onCerrar }) {
   const { usuario, esAdmin } = useAuth();
   const enlaces = ENLACES.filter((enlace) => !enlace.soloAdmin || esAdmin);
+  const nombreEmpresa = esAdmin
+    ? "GYJ Ferreterías"
+    : usuario?.empresa || "GYJ Ferreterías";
 
   return (
     <>
@@ -56,7 +59,9 @@ export default function Sidebar({ abierto = false, onCerrar }) {
             GYJ
           </span>
           <div className="sidebar__marca-texto">
-            <p className="sidebar__marca-nombre">GYJ Ferreterías</p>
+            <p className="sidebar__marca-nombre" title={nombreEmpresa}>
+              {nombreEmpresa}
+            </p>
             <p className="sidebar__marca-sub">Recepción de visitantes</p>
           </div>
         </div>
