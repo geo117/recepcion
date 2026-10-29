@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Form, Modal } from "react-bootstrap";
 import {
   FiCamera,
@@ -17,6 +17,7 @@ import {
   alertaTemporal,
   confirmarAccion,
 } from "../../utils/alertas";
+import { parsearCodigoCedula } from "../../utils/cedula";
 import { formatearFechaLarga, formatearHora, hoyISO } from "../../utils/fecha";
 import { nombreArchivoFoto } from "../../utils/fotos";
 import {
@@ -44,6 +45,14 @@ const FORMULARIO_INICIAL = {
   rh: "",
 };
 
+/** Tiempo máximo entre teclas para considerarlas parte del mismo escaneo. */
+const REINICIO_ESCANEO_MS = 120;
+/** Velocidad máxima (ms por carácter) para reconocer un escáner. */
+const VELOCIDAD_ESCANER_MS = 45;
+const LONGITUD_MINIMA_ESCANEO = 12;
+const LONGITUD_MINIMA_SIN_DELIMITADOR = 24;
+const DELIMITADORES_ESCANEO = /[@^|~]/;
+
 export default function ModalAgregarVisita({ show = false, onHide, onRegistrado }) {
   const { usuario } = useAuth();
   const [datos, setDatos] = useState(FORMULARIO_INICIAL);
@@ -60,7 +69,224 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
   const [buscandoHistorial, setBuscandoHistorial] = useState(false);
   const [procesandoSalida, setProcesandoSalida] = useState(false);
   const [reintentoEmpleados, setReintentoEmpleados] = useState(0);
+  const [mensajeEscaner, setMensajeEscaner] = useState("");
   const busquedaRef = useRef(0);
+
+  // Referencias del lector USB (que se comporta como un teclado HID).
+  const escanerRef = useRef(null);
+  const datosRef = useRef(datos);
+  const personaTextoRef = useRef(personaTexto);
+  const bufferEscaneoRef = useRef("");
+  const inicioEscaneoRef = useRef(0);
+  const ultimaTeclaRef = useRef(0);
+  const datosAntesEscaneoRef = useRef(null);
+  const personaAntesEscaneoRef = useRef(null);
+  const modalVisibleRef = useRef(show);
+  const fotoAbiertaRef = useRef(fotoAbierta);
+  const visitaEncontradaRef = useRef(visitaEncontrada);
+
+  const escaneoActivo =
+    show && !fotoAbierta && !enviando && !procesandoSalida;
+
+  useEffect(() => {
+    datosRef.current = datos;
+  }, [datos]);
+
+  useEffect(() => {
+    personaTextoRef.current = personaTexto;
+  }, [personaTexto]);
+
+  useEffect(() => {
+    modalVisibleRef.current = show;
+  }, [show]);
+
+  useEffect(() => {
+    fotoAbiertaRef.current = fotoAbierta;
+  }, [fotoAbierta]);
+
+  useEffect(() => {
+    visitaEncontradaRef.current = visitaEncontrada;
+  }, [visitaEncontrada]);
+
+  /** Enfoca el campo trampa cada vez que el modal queda disponible. */
+  useEffect(() => {
+    if (!show || fotoAbierta) return undefined;
+
+    const temporizador = window.setTimeout(() => {
+      escanerRef.current?.focus({ preventScroll: true });
+    }, 150);
+
+    return () => window.clearTimeout(temporizador);
+  }, [show, fotoAbierta]);
+
+  const reenfocarEscaner = () => {
+    window.setTimeout(() => {
+      if (!modalVisibleRef.current || fotoAbiertaRef.current) return;
+      if (!escanerRef.current?.isConnected) return;
+
+      const activo = document.activeElement;
+      if (!activo || activo === document.body) {
+        escanerRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
+
+  const procesarEscaneo = useCallback((codigo) => {
+    const resultado = parsearCodigoCedula(codigo);
+    const datosPrevios = datosAntesEscaneoRef.current;
+    const personaPrevia = personaAntesEscaneoRef.current;
+    datosAntesEscaneoRef.current = null;
+    personaAntesEscaneoRef.current = null;
+
+    // Sin un documento válido no se toca el formulario: evita que un código
+    // ajeno reemplace datos que la recepcionista ya haya escrito. Solo se
+    // deshacen los caracteres que hayan alcanzado a colarse en un input.
+    if (!resultado.documento) {
+      if (datosPrevios) setDatos(datosPrevios);
+      if (personaPrevia !== null) setPersonaTexto(personaPrevia);
+      return;
+    }
+
+    // Si el formulario venía precargado con una visita anterior, se limpia
+    // para no mezclar los datos de dos personas distintas.
+    const habiaVisitaAnterior = Boolean(visitaEncontradaRef.current);
+    if (habiaVisitaAnterior) {
+      setPersonaTexto("");
+      setFoto("");
+    } else if (personaPrevia !== null) {
+      setPersonaTexto(personaPrevia);
+    }
+
+    // Ignora cualquier carácter que se haya colado en un input mientras se
+    // detectaba el escaneo y aplica únicamente los datos de la cédula.
+    busquedaRef.current += 1;
+    setBuscandoHistorial(false);
+    setVisitaEncontrada(null);
+    setSalida(null);
+    setDatos((actuales) => {
+      const base = habiaVisitaAnterior
+        ? { ...FORMULARIO_INICIAL }
+        : (datosPrevios ?? actuales);
+      return {
+        ...base,
+        ...(resultado.documento ? { documento: resultado.documento } : {}),
+        ...(resultado.nombre ? { nombre: resultado.nombre } : {}),
+        ...(resultado.rh ? { rh: resultado.rh } : {}),
+      };
+    });
+    setErrores((actuales) => ({
+      ...actuales,
+      documento: "",
+      nombre: "",
+      rh: "",
+    }));
+
+    if (escanerRef.current) {
+      escanerRef.current.value = "";
+      escanerRef.current.focus({ preventScroll: true });
+    }
+
+    setMensajeEscaner(
+      `Cédula leída: ${resultado.nombre || resultado.documento}.`,
+    );
+  }, []);
+
+  /**
+   * Escucha el teclado en fase de captura para atrapar el escaneo incluso si
+   * el foco está en otro campo del formulario. El buffer se arma con la
+   * velocidad de las pulsaciones, no con el valor visible de un input.
+   */
+  useEffect(() => {
+    if (!escaneoActivo) {
+      bufferEscaneoRef.current = "";
+      inicioEscaneoRef.current = 0;
+      ultimaTeclaRef.current = 0;
+      datosAntesEscaneoRef.current = null;
+      personaAntesEscaneoRef.current = null;
+      return undefined;
+    }
+
+    const manejarTecla = (evento) => {
+      if (
+        evento.isComposing ||
+        evento.ctrlKey ||
+        evento.altKey ||
+        evento.metaKey
+      ) {
+        return;
+      }
+
+      const enCampoTrampa = evento.target === escanerRef.current;
+      const esCaracter = evento.key.length === 1;
+      const esFinalizador = evento.key === "Enter" || evento.key === "Tab";
+
+      if (!esCaracter && !esFinalizador) return;
+
+      const ahora = performance.now();
+
+      if (esCaracter) {
+        const inactividad = ahora - ultimaTeclaRef.current;
+
+        if (
+          !bufferEscaneoRef.current ||
+          inactividad > REINICIO_ESCANEO_MS
+        ) {
+          bufferEscaneoRef.current = "";
+          inicioEscaneoRef.current = ahora;
+          datosAntesEscaneoRef.current = datosRef.current;
+          personaAntesEscaneoRef.current = personaTextoRef.current;
+        }
+
+        ultimaTeclaRef.current = ahora;
+        bufferEscaneoRef.current += evento.key;
+
+        const buffer = bufferEscaneoRef.current;
+        const duracion = Math.max(ahora - inicioEscaneoRef.current, 1);
+        const velocidad = duracion / buffer.length;
+        const pareceRapido =
+          buffer.length >= 3 && velocidad <= VELOCIDAD_ESCANER_MS;
+        const pareceCodigo =
+          buffer.length >= 8 && DELIMITADORES_ESCANEO.test(buffer);
+
+        // Evita que la cadena del escáner contamine el campo que tenga el foco.
+        if (enCampoTrampa || pareceRapido || pareceCodigo) {
+          evento.preventDefault();
+        }
+        return;
+      }
+
+      const payload = bufferEscaneoRef.current.trim();
+      const duracion = Math.max(ahora - inicioEscaneoRef.current, 1);
+      const velocidad = duracion / Math.max(payload.length, 1);
+      const tieneDelimitador = DELIMITADORES_ESCANEO.test(payload);
+      const esEscaneo =
+        payload.length >= LONGITUD_MINIMA_ESCANEO &&
+        (tieneDelimitador ||
+          (payload.length >= LONGITUD_MINIMA_SIN_DELIMITADOR &&
+            velocidad <= VELOCIDAD_ESCANER_MS));
+
+      bufferEscaneoRef.current = "";
+      inicioEscaneoRef.current = 0;
+      ultimaTeclaRef.current = 0;
+
+      if (esEscaneo) {
+        // Frena el Enter del escáner antes de que el formulario lo interprete.
+        evento.preventDefault();
+        evento.stopPropagation();
+        procesarEscaneo(payload);
+        return;
+      }
+
+      datosAntesEscaneoRef.current = null;
+      personaAntesEscaneoRef.current = null;
+      if (enCampoTrampa && evento.key === "Enter") {
+        evento.preventDefault();
+      }
+    };
+
+    document.addEventListener("keydown", manejarTecla, true);
+    return () => document.removeEventListener("keydown", manejarTecla, true);
+  }, [escaneoActivo, procesarEscaneo]);
 
   useEffect(() => {
     let activo = true;
@@ -217,6 +443,11 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
     setBuscandoHistorial(false);
     setFoto("");
     setFotoAbierta(false);
+    setMensajeEscaner("");
+    bufferEscaneoRef.current = "";
+    datosAntesEscaneoRef.current = null;
+    personaAntesEscaneoRef.current = null;
+    if (escanerRef.current) escanerRef.current.value = "";
   };
 
   const cerrar = () => {
@@ -319,13 +550,33 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
         <div>
           <Modal.Title id="titulo-agregar-visita">Agregar visita</Modal.Title>
           <p className="texto-secundario texto-pequeno mb-0">
-            Completa los datos del visitante. El registro toma menos de 30
-            segundos.
+            Escanea la cédula con el lector USB o haz clic en un campo para
+            escribir los datos. El registro toma menos de 30 segundos.
           </p>
         </div>
       </Modal.Header>
 
       <Modal.Body>
+        <input
+          ref={escanerRef}
+          type="text"
+          className="visually-hidden"
+          aria-label="Lector de cédula. Campo automático del escáner."
+          tabIndex={-1}
+          readOnly
+          inputMode="none"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          onBlur={reenfocarEscaner}
+          onKeyDown={(evento) => {
+            if (evento.key === "Enter") evento.preventDefault();
+          }}
+        />
+        <span className="visually-hidden" role="status" aria-live="polite">
+          {mensajeEscaner}
+        </span>
+
         <Form id="form-agregar-visita" onSubmit={manejarEnvio} noValidate>
           <div className="foto-visita">
             {foto ? (

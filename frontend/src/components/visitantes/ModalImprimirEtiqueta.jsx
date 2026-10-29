@@ -5,6 +5,15 @@ import { formatearFecha, formatearHora } from "../../utils/fecha";
 import { empresaPorCodigo } from "../../utils/usuarios";
 import GYJButton from "../ui/GYJButton";
 
+function Dato({ etiqueta, valor }) {
+  return (
+    <div className="etiqueta-visita__campo">
+      <span className="etiqueta-visita__etiqueta">{etiqueta}</span>
+      <span className="etiqueta-visita__valor">{valor}</span>
+    </div>
+  );
+}
+
 export default function ModalImprimirEtiqueta({ visitante, onHide }) {
   const empresaRegistro =
     visitante?.companyNombre ||
@@ -56,72 +65,30 @@ export default function ModalImprimirEtiqueta({ visitante, onHide }) {
 
                 <p className="etiqueta-visita__nombre">{visitante.nombre}</p>
 
-                <div className="etiqueta-visita__fila">
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">
-                      Documento
-                    </span>
-                    <span className="etiqueta-visita__valor">
-                      {visitante.documento}
-                    </span>
-                  </div>
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">Empresa</span>
-                    <span className="etiqueta-visita__valor">
-                      {empresaRegistro}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="etiqueta-visita__fila">
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">
-                      Procedencia
-                    </span>
-                    <span className="etiqueta-visita__valor">
-                      {visitante.empresa || "—"}
-                    </span>
-                  </div>
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">
-                      Área que visita
-                    </span>
-                    <span className="etiqueta-visita__valor">
-                      {visitante.motivo || "—"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="etiqueta-visita__fila">
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">Fecha</span>
-                    <span className="etiqueta-visita__valor">
-                      {formatearFecha(visitante.fecha)}
-                    </span>
-                  </div>
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">Hora</span>
-                    <span className="etiqueta-visita__valor">
-                      {formatearHora(visitante.horaEntrada)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="etiqueta-visita__fila">
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">RH</span>
-                    <span className="etiqueta-visita__valor">
-                      {visitante.rh || "—"}
-                    </span>
-                  </div>
-                  <div className="etiqueta-visita__campo">
-                    <span className="etiqueta-visita__etiqueta">
-                      Teléfono de emergencia
-                    </span>
-                    <span className="etiqueta-visita__valor">
-                      {visitante.telefonoEmergencia || "—"}
-                    </span>
-                  </div>
+                <div className="etiqueta-visita__datos">
+                  <Dato etiqueta="Documento" valor={visitante.documento} />
+                  <Dato etiqueta="Empresa" valor={empresaRegistro} />
+                  <Dato
+                    etiqueta="Procedencia"
+                    valor={visitante.empresa || "—"}
+                  />
+                  <Dato
+                    etiqueta="Área que visita"
+                    valor={visitante.motivo || "—"}
+                  />
+                  <Dato
+                    etiqueta="Fecha"
+                    valor={formatearFecha(visitante.fecha)}
+                  />
+                  <Dato
+                    etiqueta="Hora"
+                    valor={formatearHora(visitante.horaEntrada)}
+                  />
+                  <Dato etiqueta="RH" valor={visitante.rh || "—"} />
+                  <Dato
+                    etiqueta="Teléfono de emergencia"
+                    valor={visitante.telefonoEmergencia || "—"}
+                  />
                 </div>
               </div>
 

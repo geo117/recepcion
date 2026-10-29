@@ -1505,12 +1505,18 @@ svg {
   overflow-wrap: anywhere;
 }
 
-.etiqueta-visita__fila {
+.etiqueta-visita__datos {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
   padding-top: 14px;
   border-top: 1px solid var(--gyj-gray-100);
+}
+
+@media (max-width: 767.98px) {
+  .etiqueta-visita__datos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .etiqueta-visita__campo {
@@ -2351,7 +2357,7 @@ svg {
     font-size: 1.5rem;
   }
 
-  .etiqueta-visita__fila {
+  .etiqueta-visita__datos {
     gap: 12px;
   }
 
