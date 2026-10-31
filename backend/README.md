@@ -67,10 +67,30 @@ También acepta `RESET_USUARIO` y `RESET_PASSWORD` como variables de entorno.
 ## 5. Ejecutar
 
 ```powershell
+pip install -r requirements.txt
 python app.py
 ```
 
 Servicio en `http://127.0.0.1:5000`. Verificación: `GET /api/salud`.
+
+El servidor que se levanta depende de `FLASK_ENV`:
+
+| `FLASK_ENV` | Servidor | Uso |
+| --- | --- | --- |
+| `development` | Flask (`app.run`) | Desarrollo local, con recarga opcional |
+| `production` | Waitress | Servidor de recepción |
+
+El **depurador interactivo está desactivado siempre**. No hay ninguna variable
+de entorno que lo active: expone ejecución de código desde el navegador e
+imprime trazas internas en la consola. Si se necesita recarga al editar código,
+usar `RECARGA_AUTOMATICA=true` junto con `FLASK_ENV=development`.
+
+En el servidor de recepción conviene registrar la salida en un archivo en lugar
+de dejar la consola abierta:
+
+```powershell
+python app.py *>> C:\logs\recepcion-api.log
+```
 
 ## 6. Conectar el frontend
 
@@ -114,6 +134,10 @@ autenticado, nunca del cuerpo de la petición: `2 = GYJ Ferreterías`,
 - **Autorización en servidor**: administración solo para `admin`; el usuario se
   revalida contra la base en cada petición (una cuenta desactivada pierde el
   acceso de inmediato).
+- **Alcance de los datos**: una recepcionista solo ve, abre y modifica las
+  visitas cuyo `usuario_recepcion` coincide con su usuario. El historial
+  completo y los reportes quedan reservados al rol `admin`. El filtro se aplica
+  en el `WHERE` del SQL, así que no se puede ampliar desde la URL.
 - **Validación del lado servidor** de nombres, usuarios, documentos, teléfonos,
   catálogos, fechas y fotos (tipo y tamaño máximo 2 MB).
 - **Límite de intentos de login** por IP y por usuario (5 en 5 minutos).
@@ -134,7 +158,8 @@ autenticado, nunca del cuerpo de la petición: `2 = GYJ Ferreterías`,
 
 ## 9. Producción
 
-- `FLASK_DEBUG=false`, `HOST` según el proxy y `DB_TRUST_CERT=no` con certificado
+- `FLASK_ENV=production` (arranca Waitress y desactiva el servidor de
+  desarrollo), `HOST` según el proxy y `DB_TRUST_CERT=no` con certificado
   válido.
 - Servir detrás de HTTPS (IIS, Nginx o Waitress) y no exponer el puerto directo.
 - Usar un usuario SQL de mínimo privilegio (solo `SELECT/INSERT/UPDATE/DELETE`

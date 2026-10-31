@@ -2,15 +2,29 @@ import * as demo from "./mockApi";
 import { ErrorApi } from "./mockApi";
 import { limpiarSesion, obtenerToken } from "./sesion";
 
-const BASE_URL = String(import.meta.env.VITE_API_URL ?? "")
+const VALOR_API_URL = String(import.meta.env.VITE_API_URL ?? "")
   .trim()
   .replace(/\/+$/, "");
 
 /**
- * Sin VITE_API_URL la aplicación funciona con el adaptador local de
- * demostración. Al definir la variable se consume el backend real.
+ * Modo demostración (datos de ejemplo en localStorage).
+ *
+ * Solo se activa de forma explícita:
+ *   - VITE_MODO_DEMO=true, o
+ *   - VITE_API_URL=demo
+ *
+ * Sin VITE_API_URL la aplicación consume el backend real en el mismo origen
+ * (`/api/...`), que es el escenario de intranet: el sitio y el API se publican
+ * bajo el mismo dominio/puerto y /api se redirige al backend.
  */
-export const esModoDemo = !BASE_URL;
+const MODO_DEMO_SOLICITADO =
+  String(import.meta.env.VITE_MODO_DEMO ?? "")
+    .trim()
+    .toLowerCase() === "true" || VALOR_API_URL.toLowerCase() === "demo";
+
+export const esModoDemo = MODO_DEMO_SOLICITADO;
+
+const BASE_URL = MODO_DEMO_SOLICITADO ? "" : VALOR_API_URL;
 
 export { CREDENCIALES_DEMO, ErrorApi } from "./mockApi";
 

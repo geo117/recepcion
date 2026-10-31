@@ -1,8 +1,8 @@
 {
-  "name": "gyj-recepcion-frontend",
+  "name": "acceza360-recepcion-frontend",
   "private": true,
   "version": "1.0.0",
-  "description": "Sistema interno de recepción de visitantes de GYJ Ferreterías S.A.",
+  "description": "Acceza360 — Sistema interno de recepción de visitantes de GYJ Ferreterías S.A.",
   "type": "module",
   "scripts": {
     "dev": "vite",

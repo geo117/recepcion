@@ -5,14 +5,14 @@ from datetime import date, timedelta
 from flask import Blueprint, jsonify, request
 
 from db import consultar_todos, consultar_uno
-from seguridad import requiere_auth
+from seguridad import requiere_admin
 from validaciones import validar_rango
 
 bp = Blueprint("reportes", __name__, url_prefix="/api/reportes")
 
 
 @bp.get("/resumen")
-@requiere_auth
+@requiere_admin
 def resumen():
     hoy = date.today()
     desde_texto = request.args.get("desde") or (hoy - timedelta(days=29)).isoformat()

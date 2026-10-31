@@ -16,8 +16,8 @@ bp = Blueprint("visitas", __name__, url_prefix="/api/visitas")
 CAMPOS_VISITA = """
     id, nombre, documento, empresa, company_reg, persona_id, persona_visitar,
     motivo, telefono, telefono_emergencia, eps, arl, rh, {foto}, fecha,
-    hora_entrada, hora_salida, estado, registrado_por, creado_en,
-    actualizado_en
+    hora_entrada, hora_salida, estado, registrado_por, usuario_recepcion,
+    creado_en, actualizado_en
 """
 
 
@@ -26,10 +26,54 @@ def _campos(incluir_foto: bool = True) -> str:
     return CAMPOS_VISITA.format(foto=expresion)
 
 
+def _condicion_usuario(usuario: dict) -> tuple[str, list]:
+    """Alcance de los registros que puede consultar el usuario autenticado.
+
+    Un administrador ve todo. Una recepcionista ve únicamente lo que ella
+    registró. El usuario sale del token, nunca de la petición, así que el
+    alcance no se puede ampliar agregando parámetros a la URL.
+
+    No se agrega la empresa como condición: `usuarios.usuario` es único y cada
+    visita guarda la empresa del usuario que la registró, así que filtrar por
+    usuario ya limita a la empresa correcta. Añadirla además haría que un
+    registro con `company_reg` inconsistente desapareciera para su propio autor.
+    """
+    if usuario.get("rol") == "admin":
+        return "", []
+
+    return "usuario_recepcion = ?", [usuario.get("usuario") or ""]
+
+
+def _condicion_empresa(usuario: dict) -> tuple[str, list]:
+    """Alcance por empresa, sin exigir que el registro sea propio.
+
+    Se usa en las búsquedas operativas de la recepción (visita abierta y datos
+    de la última visita): permiten detectar una entrada activa o reutilizar los
+    datos de alguien registrado por un compañero de la misma empresa, sin
+    exponer información de las otras empresas.
+    """
+    if usuario.get("rol") == "admin":
+        return "", []
+
+    codigo = codigo_empresa(usuario.get("empresa"))
+    if codigo is None:
+        return "", []
+
+    return "company_reg = ?", [codigo]
+
+
 def _obtener(id_visita: int) -> dict | None:
+    """Devuelve la visita si el usuario autenticado puede verla.
+
+    Para una recepcionista el filtro va en el WHERE, así que un id ajeno
+    responde 404 igual que uno inexistente: no se puede sondear el historial
+    de otros usuarios cambiando el número en la URL.
+    """
+    condicion, parametros = _condicion_usuario(g.usuario_actual)
+    extra = f" AND {condicion}" if condicion else ""
     return consultar_uno(
-        f"SELECT {_campos(True)} FROM dbo.visitantes WHERE id = ?",
-        (id_visita,),
+        f"SELECT {_campos(True)} FROM dbo.visitantes WHERE id = ?{extra}",
+        (id_visita, *parametros),
     )
 
 
@@ -64,6 +108,11 @@ def listar():
 
     condiciones: list[str] = []
     parametros: list = []
+
+    condicion_usuario, parametros_usuario = _condicion_usuario(g.usuario_actual)
+    if condicion_usuario:
+        condiciones.append(condicion_usuario)
+        parametros.extend(parametros_usuario)
 
     fecha = leer_fecha(argumentos.get("fecha"), campo="fecha")
     desde = leer_fecha(argumentos.get("desde"), campo="desde")
@@ -141,16 +190,19 @@ def abierta():
     if not documento:
         return jsonify(None)
 
+    condicion, parametros = _condicion_empresa(g.usuario_actual)
+    extra = f" AND {condicion}" if condicion else ""
+
     fila = consultar_uno(
         f"""
         SELECT TOP 1 {_campos(True)}
         FROM dbo.visitantes
         WHERE documento = ?
           AND estado = 'dentro'
-          AND fecha = CAST(SYSDATETIME() AS DATE)
+          AND fecha = CAST(SYSDATETIME() AS DATE){extra}
         ORDER BY hora_entrada DESC, id DESC
         """,
-        (documento,),
+        (documento, *parametros),
     )
     return jsonify(visita_publica(fila) if fila else None)
 
@@ -162,14 +214,17 @@ def ultima():
     if not documento:
         return jsonify(None)
 
+    condicion, parametros = _condicion_empresa(g.usuario_actual)
+    extra = f" AND {condicion}" if condicion else ""
+
     fila = consultar_uno(
         f"""
         SELECT TOP 1 {_campos(True)}
         FROM dbo.visitantes
-        WHERE documento = ?
+        WHERE documento = ?{extra}
         ORDER BY fecha DESC, hora_entrada DESC, id DESC
         """,
-        (documento,),
+        (documento, *parametros),
     )
     return jsonify(visita_publica(fila) if fila else None)
 
@@ -233,12 +288,12 @@ def crear():
                 (nombre, documento, empresa, company_reg, persona_id,
                  persona_visitar, motivo, telefono, telefono_emergencia, eps,
                  arl, rh, foto, fecha, hora_entrada, hora_salida, estado,
-                 registrado_por, creado_en)
+                 registrado_por, usuario_recepcion, creado_en)
             OUTPUT INSERTED.id
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     CAST(SYSDATETIME() AS DATE),
                     CAST(SYSDATETIME() AS TIME(0)),
-                    NULL, 'dentro', ?, SYSDATETIME())
+                    NULL, 'dentro', ?, ?, SYSDATETIME())
             """,
             (
                 limpio["nombre"],
@@ -255,6 +310,7 @@ def crear():
                 limpio["rh"],
                 limpio["foto"],
                 g.usuario_actual["nombre"],
+                g.usuario_actual["usuario"],
             ),
         )
         id_nuevo = int(actual.fetchone()[0])
@@ -265,14 +321,17 @@ def crear():
 @bp.patch("/<int:id_visita>/salida")
 @requiere_auth
 def registrar_salida(id_visita: int):
+    condicion, parametros = _condicion_usuario(g.usuario_actual)
+    extra = f" AND {condicion}" if condicion else ""
+
     with transaccion() as actual:
         actual.execute(
-            """
+            f"""
             SELECT id, estado, hora_salida
             FROM dbo.visitantes WITH (UPDLOCK, HOLDLOCK)
-            WHERE id = ?
+            WHERE id = ?{extra}
             """,
-            (id_visita,),
+            (id_visita, *parametros),
         )
         fila = actual.fetchone()
 

@@ -1,4 +1,5 @@
 import { horaActual, hoyISO, sumarDias } from "../utils/fecha";
+import { leerSesion } from "./sesion";
 
 const CLAVE = "gyj_visitas_demo_v1";
 const CLAVE_USUARIOS = "gyj_usuarios_demo_v1";
@@ -123,6 +124,7 @@ function construirVisita(base) {
     creadoEn: marcaDeTiempo(base.fecha, base.horaEntrada),
     actualizadoEn: marcaDeTiempo(base.fecha, base.horaSalida ?? base.horaEntrada),
     registradoPor: base.registradoPor ?? "Laura Méndez",
+    usuarioRecepcion: base.usuarioRecepcion ?? "recepcion",
   };
 }
 
@@ -260,6 +262,39 @@ function guardar(datos) {
   } catch {
     // El modo demo funciona igual en memoria durante la sesión.
   }
+}
+
+/**
+ * Registros visibles para la sesión activa, igual que el filtro del backend:
+ * el administrador ve todo y la recepcionista solo lo que ella registró
+ * dentro de su empresa.
+ */
+function cargarVisibles() {
+  const datos = cargar();
+  const usuario = leerSesion()?.usuario;
+  if (!usuario || usuario.rol === "admin") return datos;
+
+  return datos.filter((item) => item.usuarioRecepcion === usuario.usuario);
+}
+
+/**
+ * Registros de la empresa del usuario, sin exigir que sean suyos. Reproduce el
+ * alcance de las búsquedas operativas (visita abierta y última visita).
+ */
+function cargarVisiblesEmpresa() {
+  const datos = cargar();
+  const usuario = leerSesion()?.usuario;
+  if (!usuario || usuario.rol === "admin") return datos;
+
+  return datos.filter(
+    (item) => !usuario.empresa || item.companyNombre === usuario.empresa,
+  );
+}
+
+function esVisible(visita) {
+  const usuario = leerSesion()?.usuario;
+  if (!usuario || usuario.rol === "admin") return true;
+  return visita.usuarioRecepcion === usuario.usuario;
 }
 
 function buscarPorId(datos, id) {
@@ -509,7 +544,7 @@ export async function listarVisitas(filtros = {}) {
   } = filtros;
 
   const termino = String(busqueda).trim().toLowerCase();
-  let datos = cargar();
+  let datos = cargarVisibles();
 
   if (fecha) datos = datos.filter((item) => item.fecha === fecha);
   if (desde) datos = datos.filter((item) => item.fecha >= desde);
@@ -565,7 +600,7 @@ export async function listarVisitas(filtros = {}) {
 
 export async function obtenerVisita(id) {
   await esperar(220);
-  const { visita } = buscarPorId(cargar(), id);
+  const { visita } = buscarPorId(cargarVisibles(), id);
   return { ...visita };
 }
 
@@ -573,7 +608,7 @@ export async function buscarVisitaAbierta(documento) {
   await esperar(260);
   const normalizado = String(documento).trim().toLowerCase();
   if (!normalizado) return null;
-  const visita = cargar().find(
+  const visita = cargarVisiblesEmpresa().find(
     (item) =>
       item.fecha === hoyISO() &&
       item.estado === "dentro" &&
@@ -587,7 +622,7 @@ export async function buscarUltimaVisita(documento) {
   const normalizado = String(documento).trim().toLowerCase();
   if (!normalizado) return null;
 
-  const visitas = cargar()
+  const visitas = cargarVisiblesEmpresa()
     .filter((item) => item.documento.toLowerCase() === normalizado)
     .sort((a, b) =>
       `${b.fecha}T${b.horaEntrada}`.localeCompare(
@@ -632,6 +667,7 @@ export async function crearVisita(datos) {
     fecha: hoyISO(),
     horaEntrada: horaActual(),
     registradoPor: datos.registradoPor,
+    usuarioRecepcion: leerSesion()?.usuario?.usuario ?? "recepcion",
   });
 
   guardar([nueva, ...visitas]);
@@ -642,6 +678,9 @@ export async function registrarSalida(id) {
   await esperar(420);
   const visitas = cargar();
   const { indice, visita } = buscarPorId(visitas, id);
+  if (!esVisible(visita)) {
+    throw new ErrorApi("No encontramos la visita solicitada.", 404);
+  }
   if (visita.horaSalida) {
     throw new ErrorApi("Esta visita ya tiene una salida registrada.", 409);
   }
@@ -662,6 +701,9 @@ export async function actualizarVisita(id, cambios) {
   await esperar(460);
   const visitas = cargar();
   const { indice, visita } = buscarPorId(visitas, id);
+  if (!esVisible(visita)) {
+    throw new ErrorApi("No encontramos la visita solicitada.", 404);
+  }
   const persona = PERSONAS.find((item) => item.id === cambios.personaId);
 
   const actualizada = {

@@ -517,6 +517,44 @@ svg {
   font-size: 0.8125rem;
 }
 
+/* Logo de empresa: placa clara común para los tres archivos */
+.logo-empresa {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 6px 10px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gyj-gray-200);
+  border-radius: 10px;
+  background-color: var(--gyj-white);
+  box-shadow: 0 1px 2px rgba(26, 26, 26, 0.05);
+}
+
+.logo-empresa__img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.logo-empresa--sm {
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.logo-empresa--sm .logo-empresa__img {
+  height: 20px;
+}
+
+.logo-empresa--md .logo-empresa__img {
+  height: 28px;
+}
+
+.logo-empresa--lg .logo-empresa__img {
+  height: 38px;
+}
+
 /* Sidebar */
 .sidebar {
   position: fixed;
@@ -532,36 +570,34 @@ svg {
 
 .sidebar__marca {
   display: flex;
-  align-items: center;
-  gap: 12px;
   padding: 0 8px 24px;
+  justify-content: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sidebar__logo {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  border-radius: 10px;
-  background-color: var(--gyj-yellow);
-  color: var(--gyj-black);
-  font-family: var(--gyj-font-display);
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.sidebar__marca-bloque {
+  display: flex;
+  max-width: 100%;
+  padding: 4px 8px;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.sidebar__marca-texto {
-  min-width: 0;
-}
-
-.sidebar__marca-nombre {
-  color: var(--gyj-white);
-  font-family: var(--gyj-font-display);
-  font-size: 0.9375rem;
+.sidebar__marca-sistema {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sidebar__logo {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.32);
+}
+
+.sidebar__logo .logo-empresa__img {
+  height: 34px;
 }
 
 .sidebar__marca-sub {
@@ -853,6 +889,26 @@ svg {
   font-size: 0.9375rem;
   font-weight: 800;
   letter-spacing: -0.04em;
+}
+
+.login-marca__texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.login-marca__nombre {
+  color: var(--gyj-black);
+  font-family: var(--gyj-font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.login-marca__sub {
+  color: var(--gyj-gray-600);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
 }
 
 .login-card {
@@ -1470,25 +1526,20 @@ svg {
 .etiqueta-visita__marca {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .etiqueta-visita__logo {
-  display: grid;
-  width: 34px;
-  height: 34px;
   flex: 0 0 auto;
-  place-items: center;
-  border-radius: 8px;
-  background-color: var(--gyj-black);
-  color: var(--gyj-yellow);
-  font-family: var(--gyj-font-display);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .etiqueta-visita__empresa {
+  min-width: 0;
   font-family: var(--gyj-font-display);
   font-size: 0.9375rem;
   font-weight: 600;

@@ -43,7 +43,7 @@ export default function Header({ onAbrirMenu }) {
       </button>
 
       <div className="app-header__ruta" aria-label="Ubicación actual">
-        <span>GYJ</span>
+        <span>Acceza360</span>
         <span aria-hidden="true">/</span>
         <strong>{nombreSeccion(pathname)}</strong>
       </div>

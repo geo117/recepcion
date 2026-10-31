@@ -42,18 +42,26 @@ export default function Login() {
   const manejarEnvio = async (evento) => {
     evento.preventDefault();
 
+    const usuarioLimpio = usuario.trim();
     const nuevosErrores = {
-      usuario: usuario.trim() ? "" : "Ingresa tu usuario.",
+      usuario: usuarioLimpio ? "" : "Ingresa tu usuario.",
       password: password ? "" : "Ingresa tu contraseña.",
     };
     setErrores(nuevosErrores);
     if (nuevosErrores.usuario || nuevosErrores.password) return;
 
+    // La contraseña abandona el estado de React y el DOM en cuanto se envía:
+    // no hay razón para conservarla en memoria mientras el navegador ya la
+    // transmitió. Si el acceso falla, hay que volver a escribirla (a propósito).
+    const passwordEnviada = password;
+    setPassword("");
+    setVerPassword(false);
+
     setCargando(true);
     try {
       await iniciarSesion({
-        usuario: usuario.trim(),
-        password,
+        usuario: usuarioLimpio,
+        password: passwordEnviada,
       });
       navigate(destino, { replace: true });
     } catch (error) {
@@ -76,7 +84,13 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-panel">
-        
+        <div className="login-marca">
+          <div className="login-marca__texto">
+            <p className="login-marca__nombre">Acceza360</p>
+            <p className="login-marca__sub">Recepción de visitantes</p>
+          </div>
+        </div>
+
         <div className="login-card">
           <div className="login-card__franja" aria-hidden="true" />
           <div className="login-card__cuerpo">
@@ -179,13 +193,13 @@ export default function Login() {
           </div>
 
           <div className="login-card__pie">
-            <span>GYJ Ferreterías S.A.</span>
-            <span>Solo personal autorizado</span>
+            <span>Acceza360</span>
+            <span>GYJ Ferreterías S.A. · Solo personal autorizado</span>
           </div>
         </div>
 
         <p className="login-pie">
-          Sistema de recepción de visitantes · Uso interno
+          Acceza360 · Sistema de recepción de visitantes · Uso interno
           <br />
           Si necesitas ayuda, contacta a Tecnología de la Información.
         </p>

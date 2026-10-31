@@ -65,6 +65,7 @@ def visita_publica(fila: dict) -> dict:
         "horaSalida": _hora_texto(fila.get("hora_salida")),
         "estado": _texto(fila.get("estado")),
         "registradoPor": _texto(fila.get("registrado_por")),
+        "usuarioRecepcion": _texto(fila.get("usuario_recepcion")),
         "creadoEn": _fecha_iso(fila.get("creado_en")),
         "actualizadoEn": _fecha_iso(fila.get("actualizado_en")),
     }

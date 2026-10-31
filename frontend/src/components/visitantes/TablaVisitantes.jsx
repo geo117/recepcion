@@ -75,12 +75,14 @@ export default function TablaVisitantes({
           <p className="tabla-vacia__titulo">
             {hayFiltros
               ? "No encontramos coincidencias"
-              : "Todavía no hay visitantes registrados"}
+              : esAdmin
+                ? "Todavía no hay visitantes registrados"
+                : "Todavía no has registrado visitantes"}
           </p>
           <p className="tabla-vacia__texto">
             {hayFiltros
               ? "Prueba con otro nombre, documento o rango de fechas."
-              : "Los registros de entrada aparecerán aquí automáticamente."}
+              : "Los registros de entrada que hagas aparecerán aquí automáticamente."}
           </p>
         </div>
       ) : (

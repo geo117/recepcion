@@ -53,7 +53,7 @@ export default function AppShell() {
         </main>
 
         <footer className="app-footer">
-          <span>GYJ Ferreterías S.A. · Uso interno</span>
+          <span>Acceza360 · GYJ Ferreterías S.A. · Uso interno</span>
           <span>Recepción de visitantes v1.0</span>
         </footer>
       </div>

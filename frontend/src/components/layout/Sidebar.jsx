@@ -6,6 +6,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../../hooks/authContext";
+import LogoEmpresa from "../ui/LogoEmpresa";
 
 const ENLACES = [
   { ruta: "/recepcion", etiqueta: "Recepción", icono: FiHome, fin: true },
@@ -26,9 +27,7 @@ const ENLACES = [
 export default function Sidebar({ abierto = false, onCerrar }) {
   const { usuario, esAdmin } = useAuth();
   const enlaces = ENLACES.filter((enlace) => !enlace.soloAdmin || esAdmin);
-  const nombreEmpresa = esAdmin
-    ? "GYJ Ferreterías"
-    : usuario?.empresa || "GYJ Ferreterías";
+  const nombreEmpresa = usuario?.empresa || "GYJ Ferreterías";
 
   return (
     <>
@@ -55,14 +54,12 @@ export default function Sidebar({ abierto = false, onCerrar }) {
         </button>
 
         <div className="sidebar__marca">
-          <span className="sidebar__logo" aria-hidden="true">
-            GYJ
-          </span>
-          <div className="sidebar__marca-texto">
-            <p className="sidebar__marca-nombre" title={nombreEmpresa}>
-              {nombreEmpresa}
-            </p>
-            <p className="sidebar__marca-sub">Recepción de visitantes</p>
+          <div
+            className="sidebar__marca-bloque"
+            title={`Acceza360 · ${nombreEmpresa}`}
+          >
+            <LogoEmpresa empresa={nombreEmpresa} className="sidebar__logo" />
+            <span className="sidebar__marca-sistema">Acceza360</span>
           </div>
         </div>
 

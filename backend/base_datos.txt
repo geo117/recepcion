@@ -63,7 +63,8 @@ GO
    ----------------------------------------------------------------------------
    Campos de frontend/src/components/visitantes/ModalAgregarVisita.jsx más los
    generados por el servidor: fecha, hora_entrada, hora_salida, estado,
-   registrado_por y company_reg (2 = GYJ Ferreterías, 3 = Almasa, 4 = Colmena).
+   registrado_por, usuario_recepcion y company_reg (2 = GYJ Ferreterías,
+   3 = Almasa, 4 = Colmena).
    ============================================================================ */
 
 IF OBJECT_ID(N'dbo.visitantes', N'U') IS NULL
@@ -91,6 +92,7 @@ BEGIN
         hora_salida          TIME(0),
         estado               NVARCHAR(10),
         registrado_por       NVARCHAR(80),
+        usuario_recepcion    NVARCHAR(20),
         creado_en            DATETIME2,
         actualizado_en       DATETIME2
     );
@@ -101,6 +103,28 @@ GO
 IF COL_LENGTH(N'dbo.visitantes', N'company_reg') IS NULL
 BEGIN
     ALTER TABLE dbo.visitantes ADD company_reg INT NULL;
+END
+GO
+
+/* Usuario que inició sesión al registrar la visita. Se compara con
+   dbo.usuarios.usuario, por eso comparte tipo y longitud; el tipo TEXT no
+   admite comparaciones con un parámetro y rompería el filtro por usuario. */
+IF COL_LENGTH(N'dbo.visitantes', N'usuario_recepcion') IS NULL
+BEGIN
+    ALTER TABLE dbo.visitantes ADD usuario_recepcion NVARCHAR(20) NULL;
+END
+GO
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.visitantes')
+      AND name = N'usuario_recepcion'
+      AND system_type_id = TYPE_ID(N'text')
+)
+BEGIN
+    PRINT 'Convirtiendo usuario_recepcion de TEXT a NVARCHAR(20)...';
+    ALTER TABLE dbo.visitantes ALTER COLUMN usuario_recepcion NVARCHAR(20) NULL;
 END
 GO
 

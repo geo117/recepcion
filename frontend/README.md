@@ -1,7 +1,7 @@
-# GYJ Ferreterías — Recepción de visitantes
+# Acceza360 — Recepción de visitantes
 
-Aplicación interna para registrar la entrada y salida de visitantes de la
-oficina, consultar el histórico y generar reportes. Implementada con React,
+Aplicación interna de **Acceza360** para registrar la entrada y salida de
+visitantes de la oficina, consultar el histórico y generar reportes. Implementada con React,
 Vite, React-Bootstrap y SweetAlert2, siguiendo la identidad visual corporativa
 (blanco, amarillo, gris cálido y negro tintado).
 
@@ -28,10 +28,59 @@ salir del campo se busca la última visita de esa persona y, si existe, se
 precargan sus datos (incluido el RH) para registrar una nueva entrada con la
 fecha y hora actuales.
 
+### Conectar el backend
+
+El backend real es el modo por defecto. Deja `VITE_API_URL` vacío en
+`frontend/.env` y la aplicación llamará a `/api/...` en el mismo origen donde
+esté publicada:
+
+```env
+VITE_API_URL=
+API_PROXY_TARGET=http://localhost:5000
+```
+
+- **Desarrollo** (`npm run dev`): Vite reenvía `/api/*` a `API_PROXY_TARGET`
+  (por defecto `http://localhost:5000`), así que no hay CORS ni URLs absolutas.
+- **Intranet / producción**: el sitio se publica junto al API y el servidor web
+  (IIS con URL Rewrite + ARR, o Nginx) redirige `/api/*` a Flask en
+  `http://127.0.0.1:5000/api/*`. Al ser el mismo origen, el navegador no ejecuta
+  CORS.
+
+Si el API vive en otro host o puerto, define la URL completa y agrégala a
+`CORS_ORIGINS` del backend:
+
+```env
+VITE_API_URL=http://10.114.205.21:5000
+```
+
+Recuerda que `VITE_API_URL` se incrusta en el build: tras cambiarla hay que
+volver a ejecutar `npm run build`.
+
+### Despliegue en IIS (intranet)
+
+1. `npm run build` y copiar el contenido de `dist/` a la carpeta física del
+   sitio (por ejemplo `C:\inetpub\acceza360`).
+2. `dist/web.config` se genera automáticamente desde `public/web.config` e
+   incluye las dos reglas necesarias:
+   - `API Flask`: `/api/*` → `http://127.0.0.1:5000/api/*`.
+   - `SPA React`: cualquier ruta del cliente → `/index.html`.
+3. En el servidor deben estar instalados **URL Rewrite** y **ARR**, con
+   `Enable proxy` activo en *Application Request Routing Cache → Server Proxy
+   Settings*. Sin eso, `/api/*` responde 404.
+4. Grupo de aplicaciones del sitio: **No Managed Code**.
+5. Backend: `HOST=127.0.0.1`, `PUERTO=5000` en `backend/.env`, ejecutándose como
+   servicio (`waitress-serve --host 127.0.0.1 --port 5000 app:app`).
+6. Verificación: `http://10.114.205.21:8062/api/salud` debe devolver
+   `{"estado":"ok"}` y `http://10.114.205.21:8062/login` debe cargar la SPA.
+
+Si el sitio se publica en un subdirectorio, ajusta el destino de la regla
+`SPA React` a `/subdirectorio/index.html`; la regla del API no cambia.
+
 ### Modo demostración
 
-Sin backend configurado, la app funciona con un adaptador local que guarda los
-datos en `localStorage`. Credenciales de ejemplo:
+Solo se activa de forma explícita con `VITE_MODO_DEMO=true` (o
+`VITE_API_URL=demo`). Guarda los datos en `localStorage` mediante
+`src/services/mockApi.js`. Credenciales de ejemplo:
 
 | Usuario | Contraseña | Rol |
 | --- | --- | --- |
@@ -44,17 +93,6 @@ cambiarles la contraseña, activarlas, desactivarlas o eliminarlas. Los usuarios
 creados en modo demo se guardan en el navegador y pueden iniciar sesión de
 inmediato; un usuario desactivado no puede ingresar hasta que vuelva a
 activarse.
-
-### Conectar el backend
-
-Crea un archivo `.env.local` en la raíz de `frontend/`:
-
-```env
-VITE_API_URL=https://tu-api.gyjferreterias.com.co
-```
-
-Con esa variable definida, `src/services/api.js` consume los endpoints reales y
-deja de usar el adaptador de demostración.
 
 ## Scripts
 

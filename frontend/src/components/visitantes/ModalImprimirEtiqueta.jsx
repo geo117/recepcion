@@ -4,6 +4,7 @@ import { alertaExito } from "../../utils/alertas";
 import { formatearFecha, formatearHora } from "../../utils/fecha";
 import { empresaPorCodigo } from "../../utils/usuarios";
 import GYJButton from "../ui/GYJButton";
+import LogoEmpresa from "../ui/LogoEmpresa";
 
 function Dato({ etiqueta, valor }) {
   return (
@@ -55,12 +56,14 @@ export default function ModalImprimirEtiqueta({ visitante, onHide }) {
             <div className="etiqueta-visita">
               <div className="etiqueta-visita__principal">
                 <div className="etiqueta-visita__marca">
-                  <span className="etiqueta-visita__logo" aria-hidden="true">
-                    GYJ
-                  </span>
                   <span className="etiqueta-visita__empresa">
                     {empresaRegistro}
                   </span>
+                  <LogoEmpresa
+                    empresa={empresaRegistro}
+                    decorativo
+                    className="etiqueta-visita__logo"
+                  />
                 </div>
 
                 <p className="etiqueta-visita__nombre">{visitante.nombre}</p>

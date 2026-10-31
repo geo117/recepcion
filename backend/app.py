@@ -13,9 +13,10 @@ import os
 
 import click
 import pyodbc
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
 from db import cerrar_conexion, consultar_uno, transaccion
@@ -36,6 +37,17 @@ def crear_app() -> Flask:
 
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Cuando Flask escucha solo en loopback, el único que puede hablarle es el
+    # servidor web del mismo equipo (IIS/ARR, Nginx), que añade X-Forwarded-For.
+    # Sin ProxyFix todas las peticiones parecerían venir de 127.0.0.1 y el
+    # límite de intentos por IP del login sería un único cupo compartido: cinco
+    # fallos de cualquiera bloquearían el acceso a todo el mundo. Con x_for=1 se
+    # toma el último valor de la cabecera (el que escribió el proxy de confianza),
+    # así que un cliente no puede falsificarlo. Si HOST no es loopback, no se
+    # confía en la cabecera para no abrir un bypass del limitador.
+    if Config.HOST in {"127.0.0.1", "localhost", "::1"}:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     logging.basicConfig(
         level=logging.INFO,
@@ -67,6 +79,12 @@ def crear_app() -> Flask:
         respuesta.headers.setdefault(
             "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"
         )
+        # HSTS solo tiene efecto sobre HTTPS; enviarlo en HTTP lo ignoran los
+        # navegadores y fijaría una política que rompería el desarrollo local.
+        if request.is_secure:
+            respuesta.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000"
+            )
         return respuesta
 
     @app.get("/api/salud")
@@ -213,5 +231,56 @@ def crear_app() -> Flask:
 app = crear_app()
 
 
+def servir() -> None:
+    """Arranca el servidor HTTP según el entorno.
+
+    El depurador interactivo de Flask queda desactivado en todos los casos:
+    permite ejecutar código arbitrario desde el navegador, imprime trazas
+    internas en la consola y no debe estar disponible en un equipo de recepción
+    ni en un servicio de la intranet.
+
+    Con FLASK_ENV=development se usa el servidor de Flask (con recarga opcional)
+    para trabajar localmente. En cualquier otro caso se usa Waitress, que es el
+    servidor WSGI de producción.
+    """
+    if Config.ENTORNO == "development":
+        registro.info(
+            "Servidor de desarrollo en http://%s:%s (sin depurador)",
+            Config.HOST,
+            Config.PUERTO,
+        )
+        app.run(
+            host=Config.HOST,
+            port=Config.PUERTO,
+            debug=False,
+            use_reloader=Config.RECARGA_AUTOMATICA,
+        )
+        return
+
+    try:
+        from waitress import serve
+    except ImportError:
+        registro.warning(
+            "Waitress no está instalado (pip install -r requirements.txt); "
+            "se continúa con el servidor de Flask sin depurador."
+        )
+        app.run(
+            host=Config.HOST,
+            port=Config.PUERTO,
+            debug=False,
+            use_reloader=False,
+        )
+        return
+
+    registro.info("Waitress en http://%s:%s", Config.HOST, Config.PUERTO)
+    serve(
+        app,
+        host=Config.HOST,
+        port=Config.PUERTO,
+        threads=8,
+        ident="Acceza360",
+    )
+
+
 if __name__ == "__main__":
-    app.run(host=Config.HOST, port=Config.PUERTO, debug=Config.DEBUG)
+    servir()

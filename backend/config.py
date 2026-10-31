@@ -35,8 +35,13 @@ def _booleano(nombre: str, defecto: bool = False) -> bool:
 class Config:
     """Parámetros de ejecución del servicio."""
 
-    ENTORNO = _texto("FLASK_ENV", "development")
-    DEBUG = _booleano("FLASK_DEBUG", False)
+    ENTORNO = _texto("FLASK_ENV", "production").strip().lower()
+
+    # Recarga automática del servidor de Flask. Solo tiene efecto con
+    # FLASK_ENV=development. El depurador interactivo no se activa nunca:
+    # permite ejecutar código desde el navegador y no debe existir ni en
+    # desarrollo compartido ni en la intranet.
+    RECARGA_AUTOMATICA = _booleano("RECARGA_AUTOMATICA", False)
 
     HOST = _texto("HOST", "127.0.0.1")
     PUERTO = _entero("PUERTO", 5000)

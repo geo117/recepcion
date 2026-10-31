@@ -16,9 +16,18 @@ bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 MENSAJE_CREDENCIALES = "Credenciales inválidas. Verifica tu usuario y contraseña."
 
+# Un cuerpo con usuario y contraseña ocupa unos cientos de bytes. El límite
+# global (MAX_CONTENT_LENGTH) existe para las fotos de visitantes, pero el
+# login es un endpoint público: conviene acotarlo para que nadie gaste CPU y
+# memoria haciendo que el servidor parsee megabytes de JSON por intento.
+CUERPO_MAXIMO_BYTES = 4096
+
 
 @bp.post("/login")
 def iniciar_sesion():
+    if request.content_length and request.content_length > CUERPO_MAXIMO_BYTES:
+        return jsonify({"mensaje": "La solicitud supera el tamaño permitido."}), 413
+
     datos = request.get_json(silent=True)
     if not isinstance(datos, dict):
         return jsonify({"mensaje": MENSAJE_CREDENCIALES}), 401
