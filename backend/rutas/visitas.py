@@ -16,7 +16,7 @@ bp = Blueprint("visitas", __name__, url_prefix="/api/visitas")
 CAMPOS_VISITA = """
     id, nombre, documento, empresa, company_reg, persona_id, persona_visitar,
     motivo, telefono, telefono_emergencia, eps, arl, rh, {foto}, fecha,
-    hora_entrada, hora_salida, estado, registrado_por, usuario_recepcion,
+    hora_entrada, hora_salida, estado, registrado_por,
     creado_en, actualizado_en
 """
 
@@ -26,38 +26,23 @@ def _campos(incluir_foto: bool = True) -> str:
     return CAMPOS_VISITA.format(foto=expresion)
 
 
-def _condicion_usuario(usuario: dict) -> tuple[str, list]:
+def _condicion_empresa(usuario: dict) -> tuple[str, list]:
     """Alcance de los registros que puede consultar el usuario autenticado.
 
-    Un administrador ve todo. Una recepcionista ve únicamente lo que ella
-    registró. El usuario sale del token, nunca de la petición, así que el
-    alcance no se puede ampliar agregando parámetros a la URL.
+    Un administrador ve todo. Cualquier otro usuario ve únicamente los
+    registros cuya columna ``company_reg`` coincide con el código de su
+    empresa: 2 = GYJ Ferreterías, 3 = Almasa y 4 = Colmena. El alcance ya
+    no depende del usuario que registró la visita.
 
-    No se agrega la empresa como condición: `usuarios.usuario` es único y cada
-    visita guarda la empresa del usuario que la registró, así que filtrar por
-    usuario ya limita a la empresa correcta. Añadirla además haría que un
-    registro con `company_reg` inconsistente desapareciera para su propio autor.
-    """
-    if usuario.get("rol") == "admin":
-        return "", []
-
-    return "usuario_recepcion = ?", [usuario.get("usuario") or ""]
-
-
-def _condicion_empresa(usuario: dict) -> tuple[str, list]:
-    """Alcance por empresa, sin exigir que el registro sea propio.
-
-    Se usa en las búsquedas operativas de la recepción (visita abierta y datos
-    de la última visita): permiten detectar una entrada activa o reutilizar los
-    datos de alguien registrado por un compañero de la misma empresa, sin
-    exponer información de las otras empresas.
+    Si el usuario no tiene una empresa válida asignada, se devuelve una
+    condición falsa para no exponer registros de otras empresas.
     """
     if usuario.get("rol") == "admin":
         return "", []
 
     codigo = codigo_empresa(usuario.get("empresa"))
     if codigo is None:
-        return "", []
+        return "1 = 0", []
 
     return "company_reg = ?", [codigo]
 
@@ -65,11 +50,11 @@ def _condicion_empresa(usuario: dict) -> tuple[str, list]:
 def _obtener(id_visita: int) -> dict | None:
     """Devuelve la visita si el usuario autenticado puede verla.
 
-    Para una recepcionista el filtro va en el WHERE, así que un id ajeno
+    El filtro por empresa va en el WHERE, así que un id de otra empresa
     responde 404 igual que uno inexistente: no se puede sondear el historial
-    de otros usuarios cambiando el número en la URL.
+    de las demás empresas cambiando el número en la URL.
     """
-    condicion, parametros = _condicion_usuario(g.usuario_actual)
+    condicion, parametros = _condicion_empresa(g.usuario_actual)
     extra = f" AND {condicion}" if condicion else ""
     return consultar_uno(
         f"SELECT {_campos(True)} FROM dbo.visitantes WHERE id = ?{extra}",
@@ -109,10 +94,10 @@ def listar():
     condiciones: list[str] = []
     parametros: list = []
 
-    condicion_usuario, parametros_usuario = _condicion_usuario(g.usuario_actual)
-    if condicion_usuario:
-        condiciones.append(condicion_usuario)
-        parametros.extend(parametros_usuario)
+    condicion_empresa, parametros_empresa = _condicion_empresa(g.usuario_actual)
+    if condicion_empresa:
+        condiciones.append(condicion_empresa)
+        parametros.extend(parametros_empresa)
 
     fecha = leer_fecha(argumentos.get("fecha"), campo="fecha")
     desde = leer_fecha(argumentos.get("desde"), campo="desde")
@@ -288,12 +273,12 @@ def crear():
                 (nombre, documento, empresa, company_reg, persona_id,
                  persona_visitar, motivo, telefono, telefono_emergencia, eps,
                  arl, rh, foto, fecha, hora_entrada, hora_salida, estado,
-                 registrado_por, usuario_recepcion, creado_en)
+                 registrado_por, creado_en)
             OUTPUT INSERTED.id
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     CAST(SYSDATETIME() AS DATE),
                     CAST(SYSDATETIME() AS TIME(0)),
-                    NULL, 'dentro', ?, ?, SYSDATETIME())
+                    NULL, 'dentro', ?, SYSDATETIME())
             """,
             (
                 limpio["nombre"],
@@ -310,7 +295,6 @@ def crear():
                 limpio["rh"],
                 limpio["foto"],
                 g.usuario_actual["nombre"],
-                g.usuario_actual["usuario"],
             ),
         )
         id_nuevo = int(actual.fetchone()[0])
@@ -321,7 +305,7 @@ def crear():
 @bp.patch("/<int:id_visita>/salida")
 @requiere_auth
 def registrar_salida(id_visita: int):
-    condicion, parametros = _condicion_usuario(g.usuario_actual)
+    condicion, parametros = _condicion_empresa(g.usuario_actual)
     extra = f" AND {condicion}" if condicion else ""
 
     with transaccion() as actual:

@@ -126,6 +126,11 @@ Al registrar una visita, `company_reg` se toma de la empresa del usuario
 autenticado, nunca del cuerpo de la petición: `2 = GYJ Ferreterías`,
 `3 = Almasa`, `4 = Colmena`. El frontend recibe `companyReg` y `companyNombre`.
 
+Todas las consultas, el detalle, la edición y el registro de salida de visitas
+se delimitan por `company_reg`: el administrador ve toda la información y los
+demás usuarios ven únicamente los registros de su empresa. La columna
+`usuario_recepcion` ya no se consulta ni se escribe.
+
 ## 8. Seguridad aplicada
 
 - **SQL parametrizado** en todas las consultas (sin concatenar entrada).
@@ -135,9 +140,10 @@ autenticado, nunca del cuerpo de la petición: `2 = GYJ Ferreterías`,
   revalida contra la base en cada petición (una cuenta desactivada pierde el
   acceso de inmediato).
 - **Alcance de los datos**: una recepcionista solo ve, abre y modifica las
-  visitas cuyo `usuario_recepcion` coincide con su usuario. El historial
-  completo y los reportes quedan reservados al rol `admin`. El filtro se aplica
-  en el `WHERE` del SQL, así que no se puede ampliar desde la URL.
+  visitas cuyo `company_reg` coincide con el código de su empresa (`2`, `3` o
+  `4`); el administrador ve el historial completo y los reportes. El filtro se
+  aplica en el `WHERE` del SQL, así que no se puede ampliar desde la URL. La
+  columna `usuario_recepcion` es legado y ya no interviene en el filtro.
 - **Validación del lado servidor** de nombres, usuarios, documentos, teléfonos,
   catálogos, fechas y fotos (tipo y tamaño máximo 2 MB).
 - **Límite de intentos de login** por IP y por usuario (5 en 5 minutos).
