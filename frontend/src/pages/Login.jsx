@@ -194,7 +194,7 @@ export default function Login() {
 
           <div className="login-card__pie">
             <span>Acceza360</span>
-            <span>GYJ Ferreterías S.A. · Solo personal autorizado</span>
+            <span>Solo personal autorizado</span>
           </div>
         </div>
 
