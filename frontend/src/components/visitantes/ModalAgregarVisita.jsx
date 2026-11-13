@@ -53,6 +53,19 @@ const LONGITUD_MINIMA_ESCANEO = 12;
 const LONGITUD_MINIMA_SIN_DELIMITADOR = 24;
 const DELIMITADORES_ESCANEO = /[@^|~]/;
 
+/**
+ * Normaliza un nombre para compararlo sin depender de mayúsculas, tildes
+ * ni espacios repetidos (la persona se escribe a mano, sin lista de ayuda).
+ */
+function normalizarNombre(valor) {
+  return String(valor ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
 export default function ModalAgregarVisita({ show = false, onHide, onRegistrado }) {
   const { usuario } = useAuth();
   const [datos, setDatos] = useState(FORMULARIO_INICIAL);
@@ -360,9 +373,9 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
 
   const manejarPersona = (valor) => {
     setPersonaTexto(valor);
+    const textoNormalizado = normalizarNombre(valor);
     const encontrada = empleados.find(
-      (empleado) =>
-        empleado.nombre.toLowerCase() === valor.trim().toLowerCase(),
+      (empleado) => normalizarNombre(empleado.nombre) === textoNormalizado,
     );
     setDatos((actuales) => ({
       ...actuales,
@@ -734,18 +747,20 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
               label="Persona a visitar"
               name="persona"
               icono={FiUserCheck}
-              placeholder="Escribe para buscar…"
+              placeholder="Nombre del colaborador"
               value={personaTexto}
               onChange={(evento) => manejarPersona(evento.target.value)}
               error={errores.personaId}
-              ayuda="Selecciona un colaborador de la lista."
-              list="personas-disponibles"
+              ayuda="Escribe el nombre completo del colaborador al que visitas."
+              // Lista desplegable desactivada: se escribe el nombre a mano.
+              // list="personas-disponibles"
               autoComplete="off"
               disabled={cargandoEmpleados}
               obligatorio
               required
             />
 
+            {/* Lista desplegable de colaboradores (desactivada a propósito):
             <datalist id="personas-disponibles">
               {empleados.map((empleado) => (
                 <option key={empleado.id} value={empleado.nombre}>
@@ -753,6 +768,7 @@ export default function ModalAgregarVisita({ show = false, onHide, onRegistrado 
                 </option>
               ))}
             </datalist>
+            */}
 
             <Form.Group className="gyj-campo">
               <Form.Label htmlFor="rh">RH</Form.Label>
